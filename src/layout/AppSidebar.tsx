@@ -43,11 +43,11 @@ const navItems: NavItem[] = [
   {
     icon: <ServerIcon />,
     name: "회의 관리",
-    path: "/calendar",
+    path: "/manage",
     subItems: [
-      { name: "진행 현황", path: "/form-elements", pro: false },
-      { name: "히스토리", path: "/template-settings", pro: false },
-      { name: "회의 일정 관리", path: "/calendar-schedule", pro: false },
+      { name: "진행 현황", path: "/status", pro: false },
+      { name: "히스토리", path: "/history", pro: false },
+      { name: "회의 일정 관리", path: "/calendar", pro: false },
       { name: "회의 개설", path: "/room-reservation", pro: false },
       { name: "지식 관리", path: "/wiki", pro: false },
     ],
