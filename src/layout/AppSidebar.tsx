@@ -43,7 +43,6 @@ const navItems: NavItem[] = [
   {
     icon: <ServerIcon />,
     name: "회의 관리",
-    path: "/manage",
     subItems: [
       { name: "진행 현황", path: "/status", pro: false },
       { name: "히스토리", path: "/history", pro: false },

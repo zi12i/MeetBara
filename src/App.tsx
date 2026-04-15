@@ -19,6 +19,7 @@ import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
 import LiveMeeting from "./pages/Meetings/LiveMeeting";
+import Status from "./pages/Manage/Status";
 
 export default function App() {
   return (
@@ -31,6 +32,8 @@ export default function App() {
             <Route index path="/" element={<Home />} />
             {/* Live Meeting Page */}
             <Route path="/meeting/:id/live" element={<LiveMeeting />} />
+            {/* Meeting Management */}
+            <Route path="/status" element={<Status />} />
             {/* Others Page */}
             <Route path="/profile" element={<UserProfiles />} />
             <Route path="/calendar" element={<Calendar />} />
