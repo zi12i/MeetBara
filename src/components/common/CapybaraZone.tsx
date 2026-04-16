@@ -24,7 +24,7 @@ const BARA_SCENARIOS: Scenario[] = [
   { id: "generating", path: "/meeting/live", img: "C_5.png", msg: "회의록을 작성 중 입니다", color: "linear-gradient(90deg, #FF8A00 0%, #7000FF 100%)", footerType: "progress", footerValue: 100 },
   { id: "meeting_done", path: "/meeting/live", img: "C_4.png", msg: "회의, 고생하셨슴니다", color: "bg-[#B8A3FF]", footerType: "text", footerValue: "회의 종료" },
   { id: "idle_1", path: "/home", img: "C_6.png", msg: "남은 회의 일정이 없슴니다", color: "bg-gray-300", footerType: "text", footerValue: "여유로운 하루네요" },
-  { id: "idle_2", path: "/home", img: "C_7.png", msg: "지금 한가하심니까?", color: "bg-gray-300", footerType: "schedule", footerValue: "26. 5. 13 / 14:00" }, // 스케줄 예시
+  { id: "idle_2", path: "/home", img: "C_7.png", msg: "지금 한가하심니까?", color: "bg-gray-300", footerType: "schedule", footerValue: "26. 5. 13 / 14:00" },
   { id: "feedback", path: "/home", img: "C_9.png", msg: "돈가스가 먹고싶슴니다", color: "bg-gray-200", footerType: "text", footerValue: "점심 메뉴 추천" }
 ];
 
@@ -43,7 +43,31 @@ const CapybaraZone: React.FC = () => {
     }
   }, [pathname]);
 
-  // 👉 하단 푸터 렌더링 로직 분리
+  useEffect(() => {
+    const handleBaraUpdate = (event: any) => {
+      const { scenarioId, progress } = event.detail;
+      
+      const newScenario = BARA_SCENARIOS.find(s => s.id === scenarioId);
+      if (newScenario) {
+        // progress 값이 전달되었다면 footerValue를 해당 값으로 업데이트
+        if (progress !== undefined) {
+          setCurrentScenario({ ...newScenario, footerValue: progress });
+        } else {
+          setCurrentScenario(newScenario);
+        }
+      }
+    };
+
+    // 'UPDATE_BARA' 이벤트 리스너 등록
+    window.addEventListener('UPDATE_BARA', handleBaraUpdate);
+
+    // 컴포넌트 언마운트 시 리스너 해제
+    return () => {
+      window.removeEventListener('UPDATE_BARA', handleBaraUpdate);
+    };
+  }, []);
+
+  // 👉 하단 푸터 렌더링 로직 (기존 동일)
   const renderFooter = () => {
     const { footerType, footerValue } = currentScenario;
 
@@ -99,7 +123,7 @@ const CapybaraZone: React.FC = () => {
             />
           </div>
 
-          {/* 👉 고도화된 하단 정보 영역 */}
+          {/* 하단 정보 영역 */}
           <div className="bg-white border-t border-gray-100 py-2.5 px-2 flex items-center justify-center min-h-[40px]">
             {renderFooter()}
           </div>
