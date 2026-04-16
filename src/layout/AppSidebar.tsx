@@ -267,7 +267,7 @@ const AppSidebar: React.FC = () => {
         <div className="flex flex-col pt-6 pb-4 px-5 border-b border-gray-100 dark:border-gray-800">
           <Link to="/" className={`flex ${isExpanded || isMobileOpen ? "justify-start" : "justify-center"}`}>
             {isExpanded || isMobileOpen ? (
-              <img src="/images/logo/logo.svg" alt="회의바라 Logo" className="h-10 w-auto" />
+              <img src="/images/logo/logo.svg" alt="회의바라 Logo" className="h-15 w-auto" />
             ) : (
               <img src="/images/logo/logo-icon.svg" alt="Logo" className="h-10 w-10" />
             )}
