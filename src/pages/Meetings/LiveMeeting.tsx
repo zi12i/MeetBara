@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useParams } from "react-router";
+import { useParams, useNavigate } from "react-router-dom";
 import PageMeta from "../../components/common/PageMeta";
 import SpeakerEditModal from "../../components/meetings/SpeakerEditModal";
 import MemberAddModal from "../../components/meetings/MemberAddModal";
@@ -23,7 +23,7 @@ interface MeetingLog {
 
 const LiveMeeting: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  
+  const navigate = useNavigate(); 
   const [activeTab, setActiveTab] = useState("decisions");
   const [activeSideTab, setActiveSideTab] = useState("keyword-search"); 
   const [searchTerm, setSearchTerm] = useState("");
@@ -173,6 +173,18 @@ const LiveMeeting: React.FC = () => {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatList, activeSideTab]);
+
+  // ★ 4. 자동 라우팅 엔진: 로딩이 시작되면 5초 뒤에 결과 페이지로 이동!
+  useEffect(() => {
+    if (isGenerating) {
+      // 5초 동안 귀여운 악어바라를 보여준 뒤 결과 화면으로 이동합니다.
+      const timer = setTimeout(() => {
+        navigate(`/meeting/${id}/result`);
+      }, 5000); 
+
+      return () => clearTimeout(timer);
+    }
+  }, [isGenerating, navigate, id]);
 
   const handleSendMessage = () => {
     if (!inputValue.trim()) return;
