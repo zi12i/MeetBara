@@ -21,6 +21,7 @@ type NavItem = {
 };
 
 const topFixedItems: NavItem[] = [
+  { name: "빠른 회의 시작", path: "/meeting/quick/live", icon: <PlayIcon />, borderColor: "#91D148" },
   { name: "회의 시작", path: "/meeting-start", icon: <PlayIcon />, borderColor: "#91D148" },
   { name: "회의 등록", path: "/meeting-register", icon: <EditIcon />, borderColor: "#CAE7A7" },
   { name: "회의 일정", path: "/meeting-schedule", icon: <CalendarIcon />, borderColor: "#E2F3CA" },
@@ -54,10 +55,12 @@ const navItems: NavItem[] = [
   {
     icon: <SettingsIcon />,
     name: "설정",
-    path: "/profile",
     subItems: [
-      { name: "알림설정", path: "/alerts", pro: false },
-      { name: "템플릿 설정", path: "/template-settings", pro: false },
+      { name: "내 정보 / 계정 연동", path: "/profile", pro: false },
+      { name: "일반 / 템플릿 설정", path: "/template-settings", pro: false },
+      { name: "팀 위키", path: "/wiki", pro: false },
+      { name: "워크스페이스", path: "/workspace", pro: false },
+      { name: "액션플랜", path: "/action-plan", pro: false },
     ],
   },
   {

@@ -4,6 +4,8 @@ import PageMeta from "../../components/common/PageMeta";
 import SpeakerEditModal from "../../components/meetings/SpeakerEditModal";
 import MemberAddModal from "../../components/meetings/MemberAddModal";
 import Toast from "../../components/common/Toast"; 
+import CapybaraZone from "../../components/common/CapybaraZone";
+import { createPortal } from "react-dom";
 
 interface ChatMessage {
   id: number;
@@ -243,7 +245,7 @@ const LiveMeeting: React.FC = () => {
     <>
       <PageMeta title={`실시간 회의 - ${id}`} description="실시간 회의 진행 화면" />
       <Toast message={toastMessage} subMessage={toastSubMessage} isVisible={isToastVisible} onClose={() => setIsToastVisible(false)} />
-
+      {createPortal(<CapybaraZone />, document.body)}
       <style>{`
         @keyframes walkBara {
           0% { left: 0%; transform: translateX(-50%); }
@@ -362,7 +364,6 @@ const LiveMeeting: React.FC = () => {
                 </div>
                 <div className="w-[1.5px] h-4 bg-gray-300"></div>
                 <div className="flex items-center gap-6">
-                  <button className="text-gray-500 hover:text-gray-800"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path></svg></button>
                   <button onClick={() => setIsRecording(!isRecording)} className="text-gray-500 hover:text-gray-800">
                     {isRecording ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="10" y1="4" x2="10" y2="20"></line><line x1="14" y1="4" x2="14" y2="20"></line></svg> : <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>}
                   </button>
@@ -500,7 +501,7 @@ const LiveMeeting: React.FC = () => {
           </div>
         </div>
       )}
-
+      
       <MemberAddModal isOpen={isMemberModalOpen} onClose={() => setIsMemberModalOpen(false)} onAdd={handleAddMembers} />
       
       {/* ★ 모달에 mode 전달 및 onSave 연결 */}

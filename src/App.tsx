@@ -2,7 +2,8 @@ import { BrowserRouter as Router, Routes, Route } from "react-router";
 import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
-import UserProfiles from "./pages/UserProfiles";
+import UserProfiles from "./pages/Settings/Profile";
+import TemplateSettings from "./pages/Settings/TemplateSettings";
 import Videos from "./pages/UiElements/Videos";
 import Images from "./pages/UiElements/Images";
 import Alerts from "./pages/UiElements/Alerts";
@@ -19,6 +20,7 @@ import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
 import LiveMeeting from "./pages/Meetings/LiveMeeting";
+import QuickMeeting from "./components/meetings/QuickMeeting"; 
 import MeetingResult from "./pages/Meetings/MeetingResult";
 import Status from "./pages/Manage/Status";
 
@@ -33,6 +35,7 @@ export default function App() {
             <Route index path="/" element={<Home />} />
             {/* Live Meeting Page */}
             <Route path="/meeting/:id/live" element={<LiveMeeting />} />
+            <Route path="/meeting/quick/live" element={<QuickMeeting />} /> {/* 빠른 회의 시작 라우트 */}
             <Route path="/meeting/:id/result" element={<MeetingResult />} />
 
             {/* Meeting Management */}
@@ -41,6 +44,13 @@ export default function App() {
             <Route path="/profile" element={<UserProfiles />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/blank" element={<Blank />} />
+
+            {/* Settings */}
+            <Route path="/profile" element={<UserProfiles />} />
+            <Route path="/template-settings" element={<TemplateSettings />} />
+            <Route path="/wiki" element={<Blank />} />
+            <Route path="/workspace" element={<Blank />} />
+            <Route path="/action-plan" element={<Blank />} /> 
 
             {/* Forms */}
             <Route path="/form-elements" element={<FormElements />} />

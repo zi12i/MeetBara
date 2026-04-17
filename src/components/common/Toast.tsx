@@ -29,7 +29,6 @@ const Toast: React.FC<ToastProps> = ({ message, subMessage, isVisible, onClose, 
       <div className="bg-white border border-gray-100 rounded-[24px] shadow-[0_10px_40px_rgba(0,0,0,0.12)] px-8 py-5 flex flex-col items-center min-w-[320px] transition-all">
         
         <div className="flex items-center gap-3 mb-1.5">
-          <span className="text-2xl animate-bounce">⏰</span>
           <span className="text-[18px] font-black text-gray-900 tracking-tight">
             {message}
           </span>

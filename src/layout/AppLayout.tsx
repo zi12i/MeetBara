@@ -4,7 +4,6 @@ import { Outlet } from "react-router";
 import AppHeader from "./AppHeader";
 import Backdrop from "./Backdrop";
 import AppSidebar from "./AppSidebar";
-import CapybaraZone from "../components/common/CapybaraZone";
 
 const LayoutContent: React.FC = () => {
   const { isExpanded, isMobileOpen } = useSidebar();
@@ -25,13 +24,11 @@ const LayoutContent: React.FC = () => {
       >
         <AppHeader />
         
+        {/* 라우터 변경에 따라 각각의 페이지(화면)가 그려지는 영역 */}
         <div className="flex-1 overflow-y-auto p-4 mx-auto w-full max-w-(--breakpoint-2xl) md:p-6 bg-white">
           <Outlet />
         </div>
       </div>
-
-      {/* 바라 영역 (컴포넌트로 분리됨) */}
-      <CapybaraZone />
     </div>
   );
 };

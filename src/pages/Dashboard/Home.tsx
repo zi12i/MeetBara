@@ -1,4 +1,6 @@
 import PageMeta from "../../components/common/PageMeta";
+import CapybaraZone from "../../components/common/CapybaraZone"; 
+import { createPortal } from "react-dom"; 
 
 // 최근 회의 카드 데이터
 const recentMeetings = [
@@ -17,7 +19,7 @@ export default function Home() {
   return (
     <>
       <PageMeta title="회의바라 - 홈" description="업무 생산성을 위한 똑똑한 AI 회의 파트너" />
-
+      {createPortal(<CapybaraZone />, document.body)}
       <div className="w-full space-y-10 pb-10 overflow-x-hidden bg-white">
         
         {/* 1. 상단 중앙 검색바 (유지) */}
