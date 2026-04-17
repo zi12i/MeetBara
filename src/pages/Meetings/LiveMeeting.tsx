@@ -38,12 +38,10 @@ const LiveMeeting: React.FC = () => {
   const [isComposing, setIsComposing] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // 시스템 및 모달 상태
   const [isStopModalOpen, setIsStopModalOpen] = useState(false); 
   const [isCarryOverModalOpen, setIsCarryOverModalOpen] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false); // ★ 로딩(생성 중) 화면 상태 추가
+  const [isGenerating, setIsGenerating] = useState(false); 
   
-  // 토스트 상태
   const [isToastVisible, setIsToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastSubMessage, setToastSubMessage] = useState(""); 
@@ -89,7 +87,16 @@ const LiveMeeting: React.FC = () => {
     window.dispatchEvent(event);
   }
 
-  // 1. 타이머
+  // ★ 추가됨: 토스트 자동 종료 타이머 (3초 뒤에 사라짐)
+  useEffect(() => {
+    if (isToastVisible) {
+      const timer = setTimeout(() => {
+        setIsToastVisible(false);
+      }, 3000); // 3초 유지
+      return () => clearTimeout(timer);
+    }
+  }, [isToastVisible]);
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isRecording) {
@@ -101,10 +108,11 @@ const LiveMeeting: React.FC = () => {
     return () => clearInterval(interval);
   }, [isRecording]);
 
-  // 2. AI 시나리오 엔진
   useEffect(() => {
     let targetBaraId = currentBaraId;
     let isDeviation = isDeviationDetected;
+    const completedCount = agendas.filter(a => a.isCompleted).length;
+    const progress = agendas.length > 0 ? Math.floor((completedCount / agendas.length) * 100) : 0;
 
     if (recordingTime === 8) {
       targetBaraId = "meeting_caution";
@@ -122,24 +130,31 @@ const LiveMeeting: React.FC = () => {
       isDeviation = true;
       setChatList(prev => [...prev, { id: Date.now(), sender: "bara", text: "😡 삐빅! 회의가 산으로 가고 있습니다! 당장 복귀하세요!", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
     } 
-    // 10분 전 토스트
-    else if (recordingTime === 38) {
+    else if (recordingTime === 40) {
       targetBaraId = "meeting_normal";
       isDeviation = false;
       if (agendas.some(a => !a.isCompleted)) {
-        const completedCount = agendas.filter(a => a.isCompleted).length;
-        const progress = agendas.length > 0 ? Math.floor((completedCount / agendas.length) * 100) : 0;
-        setToastMessage("회의 종료 10분 전 입니다.");
-        setToastSubMessage(`진행률 : ${progress}%`);
+        setToastMessage("회의 종료 10분 전 입니다. ⏰");
+        setToastSubMessage(`현재 진행률 : ${progress}%`);
         setIsToastVisible(true);
       }
     } 
-    // 45초 이월 모달
-    else if (recordingTime === 45) {
+    else if (recordingTime === 48) {
       if (agendas.some(a => !a.isCompleted)) {
-        setIsRecording(false);
-        setIsCarryOverModalOpen(true);
+        setToastMessage("회의 종료 5분 전 입니다. ⏳");
+        setToastSubMessage(`현재 진행률 : ${progress}%`);
+        setIsToastVisible(true);
       }
+    }
+    else if (recordingTime === 55) {
+      if (agendas.some(a => !a.isCompleted)) {
+        setToastMessage("회의 종료 3분 전 입니다! 🔥");
+        setToastSubMessage(`마무리를 준비해주세요. (진행률 : ${progress}%)`);
+        setIsToastVisible(true);
+      }
+    }
+    else if (recordingTime === 65) {
+      setIsCarryOverModalOpen(true);
     }
 
     if (targetBaraId !== currentBaraId && !isGenerating) setCurrentBaraId(targetBaraId);
@@ -148,19 +163,15 @@ const LiveMeeting: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recordingTime]);
 
-  // 3. 진행률 동기화 (실제 안건 진행률 유지)
   useEffect(() => {
-    // 1. 현재 달성된 실제 진행률(%) 계산
     const completedCount = agendas.filter(a => a.isCompleted).length;
     const calculatedProgress = agendas.length > 0 ? Math.floor((completedCount / agendas.length) * 100) : 0;
 
-    // 2. 로딩(생성 중) 상태일 때는 강제로 100%가 아닌, '실제 진행률'을 보냄
     if (isGenerating) {
       emitBara("generating", calculatedProgress); 
       return;
     }
 
-    // 3. 평소 회의 중일 때의 상태 동기화
     if (!isStopModalOpen && !isCarryOverModalOpen) {
       emitBara(currentBaraId, calculatedProgress);
     }
@@ -174,14 +185,11 @@ const LiveMeeting: React.FC = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatList, activeSideTab]);
 
-  // ★ 4. 자동 라우팅 엔진: 로딩이 시작되면 5초 뒤에 결과 페이지로 이동!
   useEffect(() => {
     if (isGenerating) {
-      // 5초 동안 귀여운 악어바라를 보여준 뒤 결과 화면으로 이동합니다.
       const timer = setTimeout(() => {
         navigate(`/meeting/${id}/result`);
       }, 5000); 
-
       return () => clearTimeout(timer);
     }
   }, [isGenerating, navigate, id]);
@@ -202,13 +210,13 @@ const LiveMeeting: React.FC = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const unresolvedAgendasCount = agendas.filter(a => !a.isCompleted).length;
+
   return (
     <>
       <PageMeta title={`실시간 회의 - ${id}`} description="실시간 회의 진행 화면" />
-      <PageMeta title={`실시간 회의 - ${id}`} description="실시간 회의 진행 화면" />
       <Toast message={toastMessage} subMessage={toastSubMessage} isVisible={isToastVisible} onClose={() => setIsToastVisible(false)} />
 
-      {/* ★ 수정됨: 뽈뽈뽈 걸어가는 바라 애니메이션 키프레임 */}
       <style>{`
         @keyframes walkBara {
           0% { left: 0%; transform: translateX(-50%); }
@@ -216,40 +224,19 @@ const LiveMeeting: React.FC = () => {
         }
       `}</style>
 
-      {/* ★ 메인 레이아웃 분기 처리: 로딩 중 vs 회의 중 */}
       {isGenerating ? (
-        // === 로딩 (회의록 생성 중) 화면 ===
         <div className="flex flex-col items-center justify-center w-full h-[calc(100vh-120px)] bg-white rounded-2xl shadow-sm relative">
           <h2 className="text-[32px] font-black text-gray-800 mb-16 tracking-widest">LOADING...</h2>
-          
-          {/* 로딩 바 배경 */}
           <div className="relative w-full max-w-[800px] h-2 bg-[#D6E6F5] rounded-full">
-            
-            {/* ★ 뽈뽈뽈 걸어가는 바라 GIF 적용 */}
-            <div 
-              className="absolute bottom-0 pb-2 flex justify-center items-end w-[120px]" 
-              style={{ animation: 'walkBara 4s linear infinite' }}
-            >
-              <img 
-                src="/images/bara/Bara_Load.gif" 
-                alt="열심히 요약 중인 바라" 
-                className="w-full object-contain drop-shadow-sm" 
-                onError={(e) => { 
-                  // 혹시 이미지 경로가 틀렸을 때를 대비한 이모지 폴백
-                  e.currentTarget.style.display = 'none'; 
-                  e.currentTarget.nextElementSibling!.classList.remove('hidden'); 
-                }}
-              />
+            <div className="absolute bottom-0 pb-2 flex justify-center items-end w-[120px]" style={{ animation: 'walkBara 4s linear infinite' }}>
+              <img src="/images/bara/Bara_Load.gif" alt="열심히 요약 중인 바라" className="w-full object-contain drop-shadow-sm" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling!.classList.remove('hidden'); }}/>
               <div className="hidden text-6xl">🐹📝</div>
             </div>
-            
           </div>
         </div>
       ) : (
-        // === 기존 실시간 회의 화면 ===
         <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-120px)] bg-white overflow-hidden relative">
           
-          {/* 좌측 패널 */}
           <div className="flex-1 flex flex-col gap-6 p-4 overflow-hidden">
             <div className={`rounded-2xl p-6 space-y-4 shadow-sm border transition-colors duration-500 ${isDeviationDetected ? 'bg-red-50 border-red-200' : 'bg-[#F4F9ED] border-[#91D148]/10'} shrink-0`}>
               <div className="flex items-center justify-between">
@@ -339,7 +326,7 @@ const LiveMeeting: React.FC = () => {
                     {isRecording ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="10" y1="4" x2="10" y2="20"></line><line x1="14" y1="4" x2="14" y2="20"></line></svg> : <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>}
                   </button>
                   <button 
-                    onClick={() => { setIsRecording(false); setIsStopModalOpen(true); }} 
+                    onClick={() => { setIsStopModalOpen(true); }} 
                     className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-1.5 rounded-full hover:bg-gray-50 shadow-sm"
                   >
                     <div className="w-2.5 h-2.5 bg-[#FF6B6B] rounded-sm"></div><span className="text-[13px] font-bold text-[#495057]">녹음 종료</span>
@@ -349,7 +336,6 @@ const LiveMeeting: React.FC = () => {
             </div>
           </div>
 
-          {/* 우측 사이드 패널 */}
           <div className="w-full lg:w-[420px] bg-[#F4F9ED] flex flex-col shadow-inner overflow-hidden shrink-0">
             <div className="p-6 pb-2 space-y-6 shrink-0">
               <div className="flex justify-between border-b border-[#91D148]/20 pb-2">
@@ -441,39 +427,44 @@ const LiveMeeting: React.FC = () => {
       {isStopModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"></div>
-          <div className="relative bg-white rounded-[24px] p-10 w-[380px] shadow-2xl text-center animate-fade-in">
-            <h2 className="text-[18px] font-black text-gray-900 mb-2">녹음을 종료하시겠습니까?</h2>
-            <p className="text-[13px] font-medium text-gray-500 mb-8 leading-relaxed">종료 후에는 회의록이 자동으로 생성되며<br />더 이상 실시간 기록을 할 수 없습니다.</p>
+          <div className="relative bg-white rounded-[24px] p-10 w-[420px] shadow-2xl text-center animate-fade-in">
+            <h2 className="text-[20px] font-black text-gray-900 mb-4">녹음을 종료하시겠습니까?</h2>
+            
+            {unresolvedAgendasCount > 0 ? (
+              <div className="mb-8">
+                <p className="text-[14px] font-black text-red-500 mb-2 flex items-center justify-center gap-1">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                  미해결 안건이 {unresolvedAgendasCount}개 남아있습니다!
+                </p>
+                <p className="text-[13px] font-medium text-gray-600 leading-relaxed">
+                  지금 종료하시면 남은 안건은 <span className="font-bold text-gray-800">미결정 상태로 이월</span>되며,<br />이후 회의록이 자동으로 생성됩니다.
+                </p>
+              </div>
+            ) : (
+              <p className="text-[13px] font-medium text-gray-600 mb-8 leading-relaxed">
+                모든 안건이 성공적으로 완료되었습니다! 🎉<br />종료 후 회의록이 자동으로 생성됩니다.
+              </p>
+            )}
+
             <div className="flex gap-3">
               <button 
-                onClick={() => { 
-                  setIsStopModalOpen(false); 
-                  setIsRecording(true); 
-                  let originBaraId = "meeting_normal";
-                  if (recordingTime >= 8 && recordingTime < 20) originBaraId = "meeting_caution";
-                  else if (recordingTime >= 20 && recordingTime < 33) originBaraId = "meeting_warning";
-                  setCurrentBaraId(originBaraId);
-                  const completedCount = agendas.filter(a => a.isCompleted).length;
-                  const progress = agendas.length > 0 ? Math.floor((completedCount / agendas.length) * 100) : 0;
-                  emitBara(originBaraId, progress); 
-                }} 
+                onClick={() => setIsStopModalOpen(false)} 
                 className="flex-1 py-3.5 bg-[#F1F3F5] text-[#495057] font-bold rounded-xl hover:bg-gray-200 transition-all"
               >
                 아니오
               </button>
               <button 
                 onClick={() => { 
-                  // ★ 녹음 종료 확정 시: 생성 화면으로 전환, 바라존 100% 땀 뻘뻘, 토스트 띄우기
                   setIsStopModalOpen(false); 
                   setIsGenerating(true); 
                   setCurrentBaraId("generating"); 
-                  setToastMessage("회의록 생성을 시작합니다! 🐹");
+                  setToastMessage(unresolvedAgendasCount > 0 ? "미결정 안건을 이월하고 회의록을 생성합니다! 🐹" : "회의록 생성을 시작합니다! 🐹");
                   setToastSubMessage("");
                   setIsToastVisible(true);
                 }} 
-                className="flex-1 py-3.5 bg-[#91D148] text-white font-bold rounded-xl hover:bg-[#82bd41] transition-all"
+                className="flex-1 py-3.5 bg-[#91D148] text-white font-bold rounded-xl hover:bg-[#82bd41] transition-all shadow-md"
               >
-                네
+                네, 종료합니다
               </button>
             </div>
           </div>
@@ -484,22 +475,16 @@ const LiveMeeting: React.FC = () => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"></div>
           <div className="relative bg-white rounded-[24px] p-10 w-[420px] shadow-2xl text-center animate-fade-in">
-            <h2 className="text-[20px] font-black text-gray-900 mb-3">종료 시간이 다 되었습니다.</h2>
-            <p className="text-[14px] font-medium text-gray-600 mb-8 leading-relaxed">지정된 회의 시간이 종료되었습니다.<br />해결되지 않은 안건을 이월하시겠습니까?</p>
-            <div className="flex gap-3">
-              <button onClick={() => { setIsCarryOverModalOpen(false); setIsRecording(true); }} className="flex-1 py-3.5 bg-[#F1F3F5] text-[#495057] font-bold rounded-xl hover:bg-gray-200">아니오</button>
+            <h2 className="text-[20px] font-black text-gray-900 mb-3">⏰ 지정된 회의 시간이 종료되었습니다.</h2>
+            <p className="text-[14px] font-medium text-gray-600 mb-8 leading-relaxed">
+              회의를 마무리하고 하단의 <strong className="text-red-500">[녹음 종료]</strong> 버튼을<br />직접 눌러 회의록을 생성해 주세요.
+            </p>
+            <div className="flex justify-center">
               <button 
-                onClick={() => { 
-                  setIsCarryOverModalOpen(false); 
-                  setIsGenerating(true); 
-                  setCurrentBaraId("generating");
-                  setToastMessage("미결정 안건을 이월하고 회의록을 생성합니다! 🐹");
-                  setToastSubMessage("");
-                  setIsToastVisible(true);
-                }} 
-                className="flex-1 py-3.5 bg-[#91D148] text-white font-bold rounded-xl hover:bg-[#82bd41] shadow-[0_4px_12px_rgba(145,209,72,0.3)]"
+                onClick={() => setIsCarryOverModalOpen(false)} 
+                className="w-full py-3.5 bg-[#91D148] text-white font-bold rounded-xl hover:bg-[#82bd41] shadow-[0_4px_12px_rgba(145,209,72,0.3)] transition-all"
               >
-                이월하기
+                확 인
               </button>
             </div>
           </div>
