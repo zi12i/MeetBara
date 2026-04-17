@@ -37,7 +37,7 @@
 ### Backend & DB (Architecture)
 - **Server:** Python (FastAPI / Flask)
 - **Database:** PostgreSQL
-- **AI / ML:** OpenAI API / STT Engine (적용 모델에 맞춰 수정해주세요)
+- **AI / ML:** OpenAI API / STT Engine
 
 <br/>
 
@@ -48,7 +48,7 @@
 ### 1. 클론 및 패키지 설치
 ```bash
 # 프로젝트 클론
-git clone [https://github.com/your-repo/meetbara.git](https://github.com/your-repo/meetbara.git)
+git clone [https://github.com/zi12i/meetbara.git](https://github.com/zi12i/meetbara.git)
 cd meetbara
 
 # 패키지 설치
