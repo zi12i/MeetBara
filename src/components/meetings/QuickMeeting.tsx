@@ -33,7 +33,6 @@ const QuickMeeting: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate(); 
   
-  // 탭 상태
   const [activeTab, setActiveTab] = useState("decisions");
   const [activeSideTab, setActiveSideTab] = useState("chat");
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,12 +41,9 @@ const QuickMeeting: React.FC = () => {
   const [selectedSpeaker, setSelectedSpeaker] = useState("");
   const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
   
-  // ★ 빠른 회의 초기 상태
   const [meetingTitle, setMeetingTitle] = useState(`[빠른 회의] ${new Date().toLocaleDateString()}`);
   const [meetingMembers, setMeetingMembers] = useState(["김바라"]);
   const [agendas, setAgendas] = useState<Agenda[]>([]);
-
-  // 키워드 및 검색 관련 상태 (실시간 생성 시뮬레이션)
   const [meetingKeywords, setMeetingKeywords] = useState<string[]>([]);
   const [mockMeetingLogs, setMockMeetingLogs] = useState<MeetingLog[]>([]);
 
@@ -70,8 +66,6 @@ const QuickMeeting: React.FC = () => {
   const [recordingTime, setRecordingTime] = useState(0);
   const [isRecording, setIsRecording] = useState(true);
   const [waveforms, setWaveforms] = useState<number[]>(Array(35).fill(4));
-
-  // ★ 실시간 요약 데이터 (기존 LiveMeeting 구조 이식)
   const [liveSummaries, setLiveSummaries] = useState<{time: number, title: string, content: string[]}[]>([]);
 
   const [liveScript, setLiveScript] = useState([
@@ -81,38 +75,53 @@ const QuickMeeting: React.FC = () => {
     { id: 4, time: 33, user: "이영희", text: "좋네요. 상단 우측으로 이동시키고 브랜드 컬러 적용하는 걸로 확정하시죠." },
   ]);
 
-  const activeSpeakers = Array.from(new Set(liveScript.map(script => script.user)));
+  // 녹음 시간 기준 발화자 추출
+  const activeSpeakers = Array.from(
+    new Set(liveScript.filter(s => s.time <= recordingTime).map(script => script.user))
+  );
 
-    // 1. emitBara 함수 정의 변경 (status 추가)
-    const emitBara = (scenarioId: string, status?: string, customMessage?: string) => {
+  const emitBara = (scenarioId: string, status?: string, customMessage?: string) => {
     const event = new CustomEvent('UPDATE_BARA', { detail: { scenarioId, status, customMessage } });
     window.dispatchEvent(event);
-    }
+  }
 
-    // 2. useEffect 시뮬레이션 부분 수정
-    useEffect(() => {
-    if (recordingTime === 10) {
-        setMeetingTitle("메인 화면 결제 UI 개편 논의");
-        emitBara("quick_normal", "제목 작성 중...", "주제를 파악하여 제목을 업데이트했습니다! 🐹✍️");
-    } 
-    else if (recordingTime === 20) {
-        setMeetingMembers(prev => [...prev, "이영희"]);
-        emitBara("quick_normal", "참석자 인식 중...", "새로운 참석자 '이영희'님을 인식했습니다. 👋");
-    } 
-    else if (recordingTime === 36) {
-        setAgendas([{ id: 1, text: "결제 버튼 위치 조정 (자동 추출)", isCompleted: true, summary: "결제 버튼을 상단 우측으로 이동하기로 합의됨" }]);
-        emitBara("quick_normal", "결정 포착!", "중요 결정 사항을 포착하여 '오늘의 안건'에 기록했습니다. 💡");
-        setActiveTab("decisions"); 
-    }
-    }, [recordingTime]);
-
+  // ★ 수정: 발화자 변경 기능 로직 구현 완료
   const handleSpeakerChange = (newName: string) => {
     if (speakerEditMode === 'bulk') {
-      setLiveScript(prev => prev.map(script => script.user === selectedSpeaker ? { ...script, user: newName } : script));
+      // 일괄 변경
+      setLiveScript(prev => prev.map(script => 
+        script.user === selectedSpeaker ? { ...script, user: newName } : script
+      ));
+      setMeetingMembers(prev => prev.map(m => m === selectedSpeaker ? newName : m));
     } else if (speakerEditMode === 'single' && editingScriptId !== null) {
-      setLiveScript(prev => prev.map(script => script.id === editingScriptId ? { ...script, user: newName } : script));
+      // 개별 변경
+      setLiveScript(prev => prev.map(script => 
+        script.id === editingScriptId ? { ...script, user: newName } : script
+      ));
     }
   };
+
+  useEffect(() => {
+    if (recordingTime === 10) {
+      setMeetingTitle("메인 화면 결제 UI 개편 논의");
+      setMeetingKeywords(["UI개편", "메인화면"]);
+      // 채팅창에는 안내를 넣지 않음
+      emitBara("quick_normal", "제목 작성 중...", "주제를 파악하여 회의 제목을 업데이트했습니다! 🐹✍️");
+    } 
+    else if (recordingTime === 20) {
+      setMeetingMembers(prev => prev.includes("이영희") ? prev : [...prev, "이영희"]);
+      setLiveSummaries([{ time: 1, title: "회의 도입", content: ["갑작스러운 UI 개편 논의 시작", "메인 화면 버튼 위치 검토"] }]);
+      emitBara("quick_normal", "참석자 인식 중...", "새로운 참석자 '이영희'님을 인식했습니다. 👋");
+    } 
+    else if (recordingTime === 36) {
+      setAgendas(prev => prev.length > 0 ? prev : [{ id: 1, text: "결제 버튼 위치 조정 (자동 추출)", isCompleted: true, summary: "결제 버튼을 상단 우측으로 이동하기로 합의됨" }]);
+      setMeetingKeywords(prev => Array.from(new Set([...prev, "결제버튼", "전환율", "브랜드컬러"])));
+      setLiveSummaries(prev => prev.length >= 2 ? prev : [...prev, { time: 30, title: "결제 버튼 위치 확정", content: ["상단 우측 이동 합의", "연두색 브랜드 컬러 적용 결정"] }]);
+      setMockMeetingLogs([{ id: 1, title: "결제 UI 개선 건", date: "2026.04.17", members: "김바라, 이영희", keywords: ["결제버튼", "UI개편"], content: "버튼 위치 상단 이동으로 전환율 개선 기대..." }]);
+      emitBara("quick_normal", "결정 포착!", "중요 결정 사항을 포착하여 '오늘의 안건'에 기록했습니다. 💡");
+      setActiveTab("decisions"); 
+    }
+  }, [recordingTime]);
 
   useEffect(() => {
     if (isToastVisible) {
@@ -132,30 +141,9 @@ const QuickMeeting: React.FC = () => {
     return () => clearInterval(interval);
   }, [isRecording]);
 
-  // ★ 빠른 회의 고도화 시뮬레이션 로직
-  useEffect(() => {
-    if (recordingTime === 10) {
-      setMeetingTitle("메인 화면 결제 UI 개편 논의");
-      setChatList(prev => [...prev, { id: Date.now(), sender: "bara", text: "주제를 파악하여 회의 제목을 업데이트했습니다! 🐹✍️", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
-      setMeetingKeywords(["UI개편", "메인화면"]);
-    } 
-    else if (recordingTime === 20) {
-      setMeetingMembers(prev => [...prev, "이영희"]);
-      setChatList(prev => [...prev, { id: Date.now(), sender: "bara", text: "새로운 참석자 '이영희'님을 인식했습니다. 👋", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
-      setLiveSummaries([{ time: 1, title: "회의 도입", content: ["갑작스러운 UI 개편 논의 시작", "메인 화면 버튼 위치 검토"] }]);
-    } 
-    else if (recordingTime === 36) {
-      setAgendas([{ id: 1, text: "결제 버튼 위치 조정 (자동 추출)", isCompleted: true, summary: "결제 버튼을 상단 우측으로 이동하기로 합의됨" }]);
-      setChatList(prev => [...prev, { id: Date.now(), sender: "bara", text: "중요 결정 사항을 포착하여 '오늘의 안건'에 기록했습니다. 💡", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
-      setMeetingKeywords(prev => [...prev, "결제버튼", "전환율", "브랜드컬러"]);
-      setLiveSummaries(prev => [...prev, { time: 30, title: "결제 버튼 위치 확정", content: ["상단 우측 이동 합의", "연두색 브랜드 컬러 적용 결정"] }]);
-      setMockMeetingLogs([{ id: 1, title: "결제 UI 개선 건", date: "2026.04.17", members: "김바라, 이영희", keywords: ["결제버튼", "UI개편"], content: "버튼 위치 상단 이동으로 전환율 개선 기대..." }]);
-    }
-  }, [recordingTime]);
-
   useEffect(() => {
     if (!isGenerating) {
-      setChatList([{ id: Date.now(), sender: "bara", text: "빠른 회의가 시작되었습니다! 제가 대화 내용을 듣고 실시간으로 제목, 안건, 키워드를 정리해 드릴게요. 🐹✨", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+      emitBara("quick_normal", "경청 중...", "빠른 회의가 시작되었습니다! 제가 대화 내용을 듣고 자동으로 정리해 드릴게요. 🐹✨");
     }
   }, [isGenerating]);
 
@@ -216,16 +204,13 @@ const QuickMeeting: React.FC = () => {
         </div>
       ) : (
         <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-120px)] bg-white overflow-hidden relative">
-          
           <div className="flex-1 flex flex-col gap-6 p-4 overflow-hidden">
-            {/* ★ 상단 정보 패널: 날짜/시간 추가 */}
             <div className="rounded-2xl p-6 space-y-4 shadow-sm border bg-[#F4F9ED] border-[#91D148]/20 transition-all duration-500 shrink-0">
               <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold text-gray-900 transition-all duration-500 flex items-center gap-3">
                   <span className="bg-[#91D148] text-white text-[12px] px-2 py-1 rounded-md align-middle">⚡ 빠른 회의</span>
                   {meetingTitle}
                 </h1>
-                {/* ★ 정석 화면과 동일하게 날짜/시간 배치 */}
                 <span className="text-gray-500 font-bold px-1 text-[13px]">
                   {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} {new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
                 </span>
@@ -241,7 +226,6 @@ const QuickMeeting: React.FC = () => {
               </div>
             </div>
 
-            {/* ★ 실시간 요약 탭 포함 */}
             <div className="border-b border-gray-100 flex gap-10 px-2 shrink-0">
               {[{ id: "decisions", label: "오늘의 안건" }, { id: "live-summary", label: "실시간요약" }, { id: "script", label: "스크립트" }].map((tab) => (
                 <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`pb-4 text-[16px] font-bold transition-all relative ${activeTab === tab.id ? "text-gray-900" : "text-gray-400 hover:text-gray-600"}`}>
@@ -302,7 +286,15 @@ const QuickMeeting: React.FC = () => {
                   {liveScript.filter(item => item.time <= recordingTime).map((item) => (
                     <div key={item.id} className="group relative space-y-2 animate-fade-in-up">
                       <div className="absolute -left-[21px] top-2 w-3 h-3 bg-white border-2 border-gray-200 rounded-full group-hover:border-[#91D148] transition-colors"></div>
-                      <button onClick={() => { setSpeakerEditMode('single'); setSelectedSpeaker(item.user); setEditingScriptId(item.id); setIsModalOpen(true); }} className="font-bold text-gray-900 text-sm flex items-center gap-1.5 hover:text-[#91D148] transition-colors group mb-1 focus:outline-none">
+                      <button 
+                        onClick={() => {
+                          setSpeakerEditMode('single');
+                          setSelectedSpeaker(item.user);
+                          setEditingScriptId(item.id); 
+                          setIsModalOpen(true);
+                        }}
+                        className="font-bold text-gray-900 text-sm flex items-center gap-1.5 hover:text-[#91D148] transition-colors group mb-1 focus:outline-none"
+                      >
                         {item.user}
                         <svg className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-[#91D148]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                       </button>
@@ -333,7 +325,6 @@ const QuickMeeting: React.FC = () => {
             </div>
           </div>
 
-          {/* === 우측 사이드 패널: 키워드 및 검색탭 복구 === */}
           <div className="w-full lg:w-[420px] bg-[#F4F9ED] flex flex-col shadow-inner overflow-hidden shrink-0 relative">
             <div className="p-6 pb-2 space-y-6 shrink-0">
               <div className="flex justify-between border-b border-[#91D148]/20 pb-2">
@@ -344,7 +335,6 @@ const QuickMeeting: React.FC = () => {
                   </button>
                 ))}
               </div>
-
               {activeSideTab === "keyword-search" && (
                 <div className="space-y-4 animate-fade-in">
                   <div className="relative group">
@@ -390,17 +380,26 @@ const QuickMeeting: React.FC = () => {
                   <div className="flex-1 overflow-y-auto space-y-5 p-1 no-scrollbar pb-4">
                     {chatList.map((chat) => (
                       <div key={chat.id} className={`flex flex-col animate-fade-in-up ${chat.sender === "me" ? "items-end" : "items-start"}`}>
-                        {chat.sender === "bara" && <span className="text-[11px] font-black text-[#91D148] mb-1 ml-1">BARA 🐹</span>}
                         <div className="flex items-end gap-2 max-w-[90%]">
                           {chat.sender === "me" && <span className="text-[10px] text-gray-400 mb-1">{chat.time}</span>}
-                          <div className={`p-4 rounded-[20px] text-[14px] font-bold shadow-sm leading-relaxed ${chat.sender === "me" ? "bg-[#91D148] text-white rounded-tr-none" : "bg-white text-gray-800 rounded-tl-none border border-[#91D148]/10"}`}>{chat.text}</div>
+                          {/* ★ 수정: 바라 메시지일 때는 rounded-tl-none 제거 및 꼬리표 없앰, 내 메시지는 rounded-tr-none 유지 */}
+                          <div className={`p-4 rounded-[20px] text-[14px] font-bold shadow-sm leading-relaxed ${
+                            chat.sender === "me" 
+                              ? "bg-[#91D148] text-white rounded-tr-none" 
+                              : "bg-white text-gray-800"
+                          }`}>
+                            {chat.text}
+                          </div>
                         </div>
                       </div>
                     ))}
                     {isBaraTyping && (
                       <div className="flex flex-col items-start animate-fade-in mt-2">
-                        <span className="text-[11px] font-black text-[#91D148] mb-1 ml-1">BARA 🐹</span>
-                        <div className="px-5 py-4 rounded-[20px] bg-white text-gray-800 rounded-tl-none border border-[#91D148]/10 shadow-sm flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-[#91D148]/60 rounded-full animate-bounce"></div><div className="w-1.5 h-1.5 bg-[#91D148]/60 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div><div className="w-1.5 h-1.5 bg-[#91D148]/60 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div></div>
+                        <div className="px-5 py-4 rounded-[20px] bg-white text-gray-800 shadow-sm flex items-center gap-1.5">
+                          <div className="w-1.5 h-1.5 bg-[#91D148]/60 rounded-full animate-bounce"></div>
+                          <div className="w-1.5 h-1.5 bg-[#91D148]/60 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          <div className="w-1.5 h-1.5 bg-[#91D148]/60 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                        </div>
                       </div>
                     )}
                     <div ref={chatEndRef} />
@@ -417,7 +416,16 @@ const QuickMeeting: React.FC = () => {
                   {activeSpeakers.map((speakerName, index) => (
                     <div key={index} className="flex items-center justify-between bg-white p-5 rounded-2xl shadow-sm border border-transparent hover:border-[#91D148]/30 transition-all">
                       <div className="flex items-center gap-4"><div className="w-10 h-10 bg-[#F4F9ED] rounded-full flex items-center justify-center text-[#91D148] font-bold">🔊</div><span className="font-bold text-gray-800 text-[15px]">{speakerName}</span></div>
-                      <button onClick={() => { setSpeakerEditMode('bulk'); setSelectedSpeaker(speakerName); setIsModalOpen(true); }} className="p-2 text-gray-400 hover:text-[#91D148] transition-colors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                      <button 
+                        onClick={() => { 
+                          setSpeakerEditMode('bulk'); 
+                          setSelectedSpeaker(speakerName); 
+                          setIsModalOpen(true); 
+                        }} 
+                        className="p-2 text-gray-400 hover:text-[#91D148] transition-colors"
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -426,7 +434,6 @@ const QuickMeeting: React.FC = () => {
           </div>
         </div>
       )}
-      
       <MemberAddModal isOpen={isMemberModalOpen} onClose={() => setIsMemberModalOpen(false)} onAdd={handleAddMembers} />
       <SpeakerEditModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingScriptId(null); }} currentSpeaker={selectedSpeaker} meetingMembers={meetingMembers} mode={speakerEditMode} onSave={handleSpeakerChange} />
 
