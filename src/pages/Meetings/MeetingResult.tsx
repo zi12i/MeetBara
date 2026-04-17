@@ -12,9 +12,14 @@ const MeetingResult: React.FC = () => {
   const [isScriptModalOpen, setIsScriptModalOpen] = useState(false);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
 
-  // ★ 새로 추가된 상태: 저장 확인 모달 & 저장 중(로딩) 상태
   const [isSaveConfirmModalOpen, setIsSaveConfirmModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // ★ 신규: 오디오 플레이어 동기화용 상태
+  const [activeScriptId, setActiveScriptId] = useState<number | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0); // 현재 재생 시간 (초 단위)
+  const TOTAL_DURATION = 3600; // 전체 시간 (60분 = 3600초)
 
   const [templateContent, setTemplateContent] = useState(
 `[주간 정기] 신규 프로젝트 UI/UX 개선안 검토 회의
@@ -55,20 +60,27 @@ const MeetingResult: React.FC = () => {
     window.dispatchEvent(event);
   }, []);
 
-  // ★ 저장 완료 후 자동 페이지 이동 (홈 화면)
   useEffect(() => {
     if (isSaving) {
-      // 바라 상태를 '작업 중'으로 변경 (선택 사항)
       const event = new CustomEvent('UPDATE_BARA', { detail: { scenarioId: "generating" } });
       window.dispatchEvent(event);
-
-      // 4초 동안 저장 로딩을 보여주고 홈으로 이동
       const timer = setTimeout(() => {
         navigate("/"); 
       }, 4000);
       return () => clearTimeout(timer);
     }
   }, [isSaving, navigate]);
+
+  // ★ 타이머 로직: isPlaying이 true면 1초마다 currentTime 증가
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isPlaying && currentTime < TOTAL_DURATION) {
+      interval = setInterval(() => {
+        setCurrentTime(prev => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying, currentTime]);
 
   const handleApplyCorrections = (corrections: CorrectionItem[]) => {
     const activeCorrections = corrections.filter(c => c.isApplied && c.original.trim() !== "");
@@ -106,11 +118,29 @@ const MeetingResult: React.FC = () => {
     alert(`회의록이 ${format} 형식으로 성공적으로 다운로드 되었습니다! 🐹📥`);
   };
 
+  // ★ 시간 변환 헬퍼 함수
+  const parseTimeToSeconds = (timeStr: string) => {
+    const [min, sec] = timeStr.split(":").map(Number);
+    return min * 60 + sec;
+  };
+
+  const formatTime = (totalSec: number) => {
+    const min = Math.floor(totalSec / 60).toString().padStart(2, "0");
+    const sec = (totalSec % 60).toString().padStart(2, "0");
+    return `${min}:${sec}`;
+  };
+
+  // ★ 스크립트 재생 아이콘 클릭 핸들러
+  const handlePlayScript = (id: number, timeStr: string) => {
+    setActiveScriptId(id); // 초록불 고정
+    setCurrentTime(parseTimeToSeconds(timeStr)); // 진행바 이동
+    setIsPlaying(true); // 자동 재생 시작
+  };
+
   return (
     <>
       <PageMeta title={`회의록 요약 결과 - ${id}`} description="AI 회의록 요약 결과 확인 및 수정" />
 
-      {/* 애니메이션 키프레임 (로딩 바라용) */}
       <style>{`
         @keyframes walkBara {
           0% { left: 0%; transform: translateX(-50%); }
@@ -118,31 +148,21 @@ const MeetingResult: React.FC = () => {
         }
       `}</style>
 
-      {/* ★ 분기 처리: 저장 중(로딩)일 때는 메인 UI 대신 로딩 화면만 보여줌 */}
       {isSaving ? (
         <div className="flex flex-col items-center justify-center w-full h-[calc(100vh-120px)] bg-white rounded-2xl shadow-sm relative animate-fade-in">
           <h2 className="text-[32px] font-black text-gray-800 mb-4 tracking-widest">SAVING...</h2>
           <p className="text-gray-500 font-bold mb-16">회의록을 안전하게 DB에 저장하고 있습니다 🐹</p>
-          
-          <div className="relative w-full max-w-[800px] h-2 bg-[#D9D9D9] rounded-full overflow-visible">
-            {/* 뽈뽈뽈 짐 싸들고 가는 바라 */}
+          <div className="relative w-full max-w-[800px] h-2 bg-[#D6E6F5] rounded-full overflow-visible">
             <div className="absolute bottom-0 pb-2 flex justify-center items-end w-[120px]" style={{ animation: 'walkBara 4s linear infinite' }}>
-              <img 
-                src="/images/bara/Bara_Load.gif" 
-                alt="열심히 저장 중인 바라" 
-                className="w-full object-contain drop-shadow-sm mix-blend-multiply" 
-                onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling!.classList.remove('hidden'); }}
-              />
+              <img src="/images/bara/Bara_Load.gif" alt="열심히 저장 중인 바라" className="w-full object-contain drop-shadow-sm mix-blend-multiply" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling!.classList.remove('hidden'); }} />
               <div className="hidden text-6xl">🐹💾</div>
             </div>
           </div>
         </div>
       ) : (
-        /* 기존 메인 화면 (저장 중이 아닐 때) */
         <div className="flex flex-col lg:flex-row gap-8 h-[calc(100vh-120px)] bg-white p-6 overflow-hidden" onClick={() => { if(isExportMenuOpen) setIsExportMenuOpen(false); }}>
           
           <TemplateEditModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} initialContent={templateContent} onSave={setTemplateContent} />
-          
           <ScriptEditModal isOpen={isScriptModalOpen} onClose={() => setIsScriptModalOpen(false)} onApply={handleApplyCorrections} onSingleApply={handleSingleApply} originalScripts={scripts} initialCorrections={pendingCorrections} />
 
           {/* === 좌측 영역 === */}
@@ -185,11 +205,26 @@ const MeetingResult: React.FC = () => {
             <h3 className="text-[16px] font-black text-gray-800 border-b-2 border-gray-100 pb-2 mb-3 inline-block pr-6 border-b-[#91D148]/50 shrink-0">스크립트 원문</h3>
             
             <div className="bg-[#EDF6E5]/40 rounded-xl p-5 flex flex-col flex-1 overflow-hidden border border-[#91D148]/20">
+              
+              {/* ★ 상단 오디오 플레이어 (실시간 동기화) */}
               <div className="flex items-center gap-4 mb-4 bg-white p-3 rounded-lg shadow-sm border border-gray-100 shrink-0">
-                <button className="text-[#628a31] hover:text-[#4d7222] transition-colors"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></button>
-                <button className="text-gray-400 hover:text-gray-600 transition-colors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg></button>
-                <div className="flex-1 h-1.5 bg-gray-200 rounded-full relative cursor-pointer"><div className="absolute top-0 left-0 h-full w-[15%] bg-[#91D148] rounded-full"></div><div className="absolute top-1/2 left-[15%] -translate-y-1/2 w-3.5 h-3.5 bg-white border-2 border-[#628a31] rounded-full shadow"></div></div>
-                <span className="text-[12px] font-mono font-bold text-gray-500">12:45 / 60:00</span>
+                {/* 재생/일시정지 버튼 토글 연동 */}
+                <button onClick={() => setIsPlaying(true)} className={`transition-colors ${isPlaying ? 'text-[#4d7222]' : 'text-[#628a31] hover:text-[#4d7222]'}`}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill={isPlaying ? "currentColor" : "none"} stroke="currentColor" strokeWidth={isPlaying ? "1" : "2"}><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                </button>
+                <button onClick={() => setIsPlaying(false)} className={`transition-colors ${!isPlaying ? 'text-gray-600' : 'text-gray-400 hover:text-gray-600'}`}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill={!isPlaying ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                </button>
+                
+                <div className="flex-1 h-1.5 bg-gray-200 rounded-full relative cursor-pointer">
+                <div className="absolute top-0 left-0 h-full bg-[#91D148] rounded-full transition-all duration-1000 ease-linear" style={{ width: `${(currentTime / TOTAL_DURATION) * 100}%` }}></div>
+                <div className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white border-2 border-[#628a31] rounded-full shadow transition-all duration-1000 ease-linear z-10" style={{ left: `calc(${(currentTime / TOTAL_DURATION) * 100}% - 7px)` }}></div>
+            </div>
+                
+                {/* 텍스트 타이머 실시간 반영 */}
+                <span className="text-[12px] font-mono font-bold text-gray-500 w-24 text-right">
+                  {formatTime(currentTime)} / 60:00
+                </span>
               </div>
 
               <div className="flex justify-end mb-4 shrink-0">
@@ -197,18 +232,29 @@ const MeetingResult: React.FC = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto space-y-6 pr-3 no-scrollbar bg-white rounded-lg p-5 border border-gray-100 shadow-sm min-h-0">
-                {scripts.map(script => (
-                  <div key={script.id} className="text-[14px] leading-relaxed text-gray-700">
-                    <span className="font-bold text-gray-900">{script.speaker}:</span> {script.text} 
-                    <button className="inline-flex items-center gap-1 ml-2 text-gray-400 hover:text-[#91D148] transition-colors group align-middle">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="group-hover:fill-current"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                      <span className="text-[12px] font-bold whitespace-nowrap">{script.time}</span>
-                    </button>
-                  </div>
-                ))}
+                {scripts.map(script => {
+                  // ★ 현재 스크립트가 활성화(Active) 상태인지 확인
+                  const isActive = activeScriptId === script.id;
+
+                  return (
+                    <div key={script.id} className={`text-[14px] leading-relaxed transition-colors ${isActive ? 'text-gray-900 bg-[#F4F9ED]/50 -mx-2 px-2 py-1 rounded-lg' : 'text-gray-700'}`}>
+                      <span className="font-bold text-gray-900">{script.speaker}:</span> {script.text} 
+                      
+                      {/* ★ 타임스탬프 클릭 시 재생 동기화 처리 */}
+                      <button 
+                        onClick={() => handlePlayScript(script.id, script.time)}
+                        className={`inline-flex items-center gap-1 ml-2 transition-colors group align-middle focus:outline-none ${isActive ? 'text-[#91D148]' : 'text-gray-400 hover:text-[#91D148]'}`}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={isActive ? 'fill-current' : 'group-hover:fill-current'}>
+                          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                        <span className="text-[12px] font-bold whitespace-nowrap">{script.time}</span>
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
 
-              {/* ★ 수정됨: 저장하기 버튼 누르면 바로 알럿 띄우지 않고 컨펌 모달 띄움 */}
               <button 
                 onClick={() => setIsSaveConfirmModalOpen(true)} 
                 className="w-full mt-4 shrink-0 bg-[#C8E6A5] text-[#4d7222] py-4 rounded-lg text-[18px] font-black hover:bg-[#b8dd8d] transition-colors shadow-sm"
@@ -220,7 +266,6 @@ const MeetingResult: React.FC = () => {
         </div>
       )}
 
-      {/* ★ 신규: 저장 확인 모달 (안전장치) */}
       {isSaveConfirmModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
           <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center animate-fade-in text-center border border-gray-100 w-[380px]">
@@ -230,21 +275,8 @@ const MeetingResult: React.FC = () => {
               저장 후에는 더 이상 내용을 <strong className="text-red-500">수정할 수 없으며</strong>,<br/>홈 화면으로 이동합니다.
             </p>
             <div className="flex gap-3 w-full">
-              <button 
-                onClick={() => setIsSaveConfirmModalOpen(false)} 
-                className="flex-1 py-3.5 bg-[#F1F3F5] text-gray-600 font-bold rounded-xl hover:bg-gray-200 transition-colors"
-              >
-                취소
-              </button>
-              <button 
-                onClick={() => {
-                  setIsSaveConfirmModalOpen(false);
-                  setIsSaving(true); // 로딩 화면으로 전환
-                }} 
-                className="flex-1 py-3.5 bg-[#91D148] text-white font-bold rounded-xl hover:bg-[#82bd41] shadow-md transition-colors"
-              >
-                저장 확정
-              </button>
+              <button onClick={() => setIsSaveConfirmModalOpen(false)} className="flex-1 py-3.5 bg-[#F1F3F5] text-gray-600 font-bold rounded-xl hover:bg-gray-200 transition-colors">취소</button>
+              <button onClick={() => { setIsSaveConfirmModalOpen(false); setIsSaving(true); }} className="flex-1 py-3.5 bg-[#91D148] text-white font-bold rounded-xl hover:bg-[#82bd41] shadow-md transition-colors">저장 확정</button>
             </div>
           </div>
         </div>

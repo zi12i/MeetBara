@@ -223,7 +223,7 @@ const LiveMeeting: React.FC = () => {
           <h2 className="text-[32px] font-black text-gray-800 mb-16 tracking-widest">LOADING...</h2>
           
           {/* 로딩 바 배경 */}
-          <div className="relative w-full max-w-[800px] h-2 bg-[#D9D9D9] rounded-full">
+          <div className="relative w-full max-w-[800px] h-2 bg-[#D6E6F5] rounded-full">
             
             {/* ★ 뽈뽈뽈 걸어가는 바라 GIF 적용 */}
             <div 

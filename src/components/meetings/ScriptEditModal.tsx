@@ -22,18 +22,38 @@ const ScriptEditModal: React.FC<ScriptEditModalProps> = ({ isOpen, onClose, onAp
   const [corrections, setCorrections] = useState<CorrectionItem[]>([]);
   const [selectedWordForView, setSelectedWordForView] = useState<string | null>(null);
   const [confirmingItem, setConfirmingItem] = useState<CorrectionItem | null>(null);
-  
-  // ★ 추가됨: 일괄 수정 확인 모달 상태
   const [isConfirmingBulk, setIsConfirmingBulk] = useState(false);
+
+  // ★ 오디오 플레이어 동기화용 상태
+  const [activeScriptId, setActiveScriptId] = useState<number | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0); // 초 단위
+  const TOTAL_DURATION = 3600; // 60분
 
   useEffect(() => {
     if (isOpen) {
       setCorrections(initialCorrections);
       setSelectedWordForView(null);
       setConfirmingItem(null);
-      setIsConfirmingBulk(false); // ★ 모달 열 때 일괄 수정 팝업 상태도 초기화
+      setIsConfirmingBulk(false);
+      
+      // 모달 열 때 오디오 상태 초기화
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setActiveScriptId(null);
     }
   }, [isOpen, initialCorrections]);
+
+  // ★ 오디오 타이머 로직
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isPlaying && currentTime < TOTAL_DURATION) {
+      interval = setInterval(() => {
+        setCurrentTime(prev => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying, currentTime]);
 
   if (!isOpen) return null;
 
@@ -93,11 +113,28 @@ const ScriptEditModal: React.FC<ScriptEditModalProps> = ({ isOpen, onClose, onAp
     setSelectedWordForView(null);
   };
 
-  // ★ 추가됨: 일괄 수정 확정 실행 함수
   const executeBulkEdit = () => {
     onApply(corrections);
     setIsConfirmingBulk(false);
     onClose();
+  };
+
+  // ★ 오디오 컨트롤 함수
+  const parseTimeToSeconds = (timeStr: string) => {
+    const [min, sec] = timeStr.split(":").map(Number);
+    return min * 60 + sec;
+  };
+
+  const formatTime = (totalSec: number) => {
+    const min = Math.floor(totalSec / 60).toString().padStart(2, "0");
+    const sec = (totalSec % 60).toString().padStart(2, "0");
+    return `${min}:${sec}`;
+  };
+
+  const handlePlayScript = (id: number, timeStr: string) => {
+    setActiveScriptId(id);
+    setCurrentTime(parseTimeToSeconds(timeStr));
+    setIsPlaying(true);
   };
 
   const renderHighlightedText = (text: string, scriptId: number) => {
@@ -211,24 +248,39 @@ const ScriptEditModal: React.FC<ScriptEditModalProps> = ({ isOpen, onClose, onAp
           {/* === 우측: 스크립트 뷰어 패널 === */}
           <div className="flex-[4.5] flex flex-col bg-white">
             
-            {selectedWordForView ? (
-              <div className="px-6 py-4 bg-gray-900 border-b border-gray-100 shrink-0 flex items-center justify-between">
-                <button onClick={() => setSelectedWordForView(null)} className="text-white hover:text-[#91D148] font-bold text-[14px] transition-colors flex items-center gap-1">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg> 전체 원문 보기
-                </button>
-                <span className="text-[12px] font-bold text-gray-300">[{selectedWordForView}] 필터링 중</span>
-              </div>
-            ) : (
-              <div className="px-6 py-4 bg-white border-b border-gray-100 shrink-0 flex flex-col gap-3">
-                <h3 className="text-[15px] font-black text-gray-800">전사 원문 (STT)</h3>
-                <div className="flex items-center gap-4 bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-sm">
-                  <button className="text-[#628a31] hover:text-[#4d7222] transition-colors"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></button>
-                  <button className="text-gray-400 hover:text-gray-600 transition-colors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg></button>
-                  <div className="flex-1 h-1.5 bg-gray-300 rounded-full relative cursor-pointer"><div className="absolute top-0 left-0 h-full w-[25%] bg-[#91D148] rounded-full"></div><div className="absolute top-1/2 left-[25%] -translate-y-1/2 w-3.5 h-3.5 bg-white border-2 border-[#628a31] rounded-full shadow"></div></div>
-                  <span className="text-[12px] font-mono font-bold text-gray-500">12:45 / 60:00</span>
+            <div className="px-6 py-4 bg-white border-b border-gray-100 shrink-0 flex flex-col gap-3">
+              {/* 원문보기 모드 여부에 따른 헤더 전환 */}
+              {selectedWordForView ? (
+                <div className="bg-gray-900 px-4 py-2.5 rounded-lg flex items-center justify-between">
+                  <button onClick={() => setSelectedWordForView(null)} className="text-white hover:text-[#91D148] font-bold text-[13px] transition-colors flex items-center gap-1">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg> 전체 원문 보기
+                  </button>
+                  <span className="text-[12px] font-bold text-gray-300">[{selectedWordForView}] 필터링 중</span>
                 </div>
+              ) : (
+                <h3 className="text-[15px] font-black text-gray-800">전사 원문 (STT)</h3>
+              )}
+
+              {/* ★ 오디오 플레이어 (항상 표시, 모달 버그 픽스 반영) */}
+              <div className="flex items-center gap-4 bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-sm mt-1">
+                <button onClick={() => setIsPlaying(true)} className={`transition-colors ${isPlaying ? 'text-[#4d7222]' : 'text-[#628a31] hover:text-[#4d7222]'}`}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill={isPlaying ? "currentColor" : "none"} stroke="currentColor" strokeWidth={isPlaying ? "1" : "2"}><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                </button>
+                <button onClick={() => setIsPlaying(false)} className={`transition-colors ${!isPlaying ? 'text-gray-600' : 'text-gray-400 hover:text-gray-600'}`}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill={!isPlaying ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                </button>
+                
+                <div className="flex-1 h-1.5 bg-gray-300 rounded-full relative cursor-pointer">
+                  <div className="absolute top-0 left-0 h-full bg-[#91D148] rounded-full transition-all duration-1000 ease-linear" style={{ width: `${(currentTime / TOTAL_DURATION) * 100}%` }}></div>
+                  {/* overflow-hidden 삭제 및 z-10 적용하여 동그라미 잘림 해결 */}
+                  <div className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white border-2 border-[#628a31] rounded-full shadow transition-all duration-1000 ease-linear z-10" style={{ left: `calc(${(currentTime / TOTAL_DURATION) * 100}% - 7px)` }}></div>
+                </div>
+                
+                <span className="text-[12px] font-mono font-bold text-gray-500 w-24 text-right">
+                  {formatTime(currentTime)} / 60:00
+                </span>
               </div>
-            )}
+            </div>
             
             <div className="flex-1 overflow-y-auto p-6 space-y-5 no-scrollbar">
               {originalScripts
@@ -236,13 +288,23 @@ const ScriptEditModal: React.FC<ScriptEditModalProps> = ({ isOpen, onClose, onAp
                 .map(script => {
                   const activeCorrection = selectedWordForView ? corrections.find(c => c.original === selectedWordForView) : null;
                   const isExcluded = activeCorrection?.excludedScriptIds.includes(script.id);
+                  // ★ 현재 스크립트 활성화 상태
+                  const isActive = activeScriptId === script.id;
 
                   return (
-                    <div key={script.id} className="text-[14px] leading-relaxed text-gray-700 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                    <div key={script.id} className={`text-[14px] leading-relaxed transition-colors p-4 rounded-xl border border-gray-100 ${isActive ? 'bg-[#F4F9ED]/50 border-[#91D148]/30 shadow-sm' : 'bg-gray-50 text-gray-700'}`}>
                       <div className="flex justify-between items-center mb-3">
                         <div className="flex items-center gap-3">
                           <span className="font-black text-gray-900">{script.speaker}</span>
-                          <span className="text-gray-400 text-[11px] font-bold flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> {script.time}</span>
+                          
+                          {/* ★ 타임스탬프 클릭 시 재생 동기화 처리 */}
+                          <button 
+                            onClick={() => handlePlayScript(script.id, script.time)}
+                            className={`text-[11px] font-bold flex items-center gap-1 transition-colors group focus:outline-none ${isActive ? 'text-[#91D148]' : 'text-gray-400 hover:text-[#91D148]'}`}
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={isActive ? 'fill-current' : 'group-hover:fill-current'}><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> 
+                            {script.time}
+                          </button>
                         </div>
                         
                         {selectedWordForView && activeCorrection && (
@@ -254,7 +316,7 @@ const ScriptEditModal: React.FC<ScriptEditModalProps> = ({ isOpen, onClose, onAp
                           </button>
                         )}
                       </div>
-                      <div className="text-gray-600">
+                      <div className={isActive ? 'text-gray-900' : 'text-gray-600'}>
                         {renderHighlightedText(script.text, script.id)}
                       </div>
                     </div>
@@ -266,9 +328,9 @@ const ScriptEditModal: React.FC<ScriptEditModalProps> = ({ isOpen, onClose, onAp
             </div>
           </div>
 
-          {/* ★ 기존: 개별 수정 컨펌 팝업 */}
+          {/* 확인 컨펌 모달 (개별/일괄 동일) */}
           {confirmingItem && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[1px]">
+            <div className="absolute inset-0 z-[150] flex items-center justify-center bg-black/30 backdrop-blur-[1px]">
               <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center animate-fade-in text-center border border-gray-100 w-[380px]">
                 <span className="text-[32px] mb-4">⚠️</span>
                 <p className="text-[18px] font-black text-gray-900 mb-2">해당 단어를 수정하시겠습니까?</p>
@@ -284,9 +346,8 @@ const ScriptEditModal: React.FC<ScriptEditModalProps> = ({ isOpen, onClose, onAp
             </div>
           )}
           
-          {/* ★ 신규: 일괄 수정 컨펌 팝업 */}
           {isConfirmingBulk && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[1px]">
+            <div className="absolute inset-0 z-[150] flex items-center justify-center bg-black/30 backdrop-blur-[1px]">
               <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center animate-fade-in text-center border border-gray-100 w-[400px]">
                 <span className="text-[32px] mb-4">✨</span>
                 <p className="text-[18px] font-black text-gray-900 mb-2">일괄 수정을 진행하시겠습니까?</p>
@@ -307,7 +368,6 @@ const ScriptEditModal: React.FC<ScriptEditModalProps> = ({ isOpen, onClose, onAp
         <div className="p-5 bg-white border-t border-gray-200 shrink-0 flex justify-end gap-3 relative z-40">
           <button onClick={onClose} className="px-8 py-3.5 rounded-xl text-[15px] font-bold text-gray-500 hover:bg-gray-100 transition-colors">닫기</button>
           
-          {/* ★ 클릭 시 바로 적용하지 않고 isConfirmingBulk 상태를 true로 변경 */}
           <button 
             onClick={() => {
               if (appliedCount > 0) setIsConfirmingBulk(true);
