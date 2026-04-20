@@ -21,6 +21,7 @@ import MeetingLayout from "./pages/Meetings/MeetingLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
 import MeetingStart from "./pages/Meetings/MeetingStart";
+import MeetingRegister from "./pages/Meetings/MeetingRegister";
 import LiveMeeting from "./pages/Meetings/LiveMeeting";
 import QuickMeeting from "./pages/Meetings/QuickMeeting"; 
 import MeetingResult from "./pages/Meetings/MeetingResult";
@@ -36,6 +37,7 @@ export default function App() {
           <Route element={<AppLayout />}>
             <Route index path="/" element={<Home />} />
             <Route path="/meeting-start" element={<MeetingStart />} />
+            <Route path="/meeting-register" element={<MeetingRegister />} />
             {/* Meeting Management */}
             <Route path="/status" element={<Status />} />
             {/* Others Page */}

@@ -9,25 +9,33 @@ const LayoutContent: React.FC = () => {
   const { isExpanded, isMobileOpen } = useSidebar();
 
   return (
-    <div className="h-screen w-screen xl:flex relative bg-white overflow-hidden">
-      {/* 사이드바 영역 */}
-      <div>
-        <AppSidebar />
-        <Backdrop />
-      </div>
+    // 💡 핵심 1: 최상단 부모에서 flex 속성 완전 제거!
+    // 화면에 꽉 차게 고정(h-screen w-full)하고, 삐져나가는 모든 전역 스크롤을 차단(overflow-hidden)합니다.
+    <div className="relative h-screen w-full bg-white overflow-hidden">
       
-      {/* 메인 컨텐츠 영역 */}
+      {/* 고정된(fixed) 사이드바는 문서 흐름에 영향을 주지 않고 화면 위에 뜹니다. */}
+      <AppSidebar />
+      <Backdrop />
+      
+      {/* 💡 핵심 2: 메인 래퍼를 block 레벨로 유지하되, h-screen을 부여합니다. */}
+      {/* 마진(ml)이 변해도 가로 너비가 100vw를 넘지 않고 똑똑하게 스스로 줄어듭니다. */}
       <div
-        className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${
+        className={`flex flex-col h-screen transition-all duration-300 ease-in-out bg-white ${
           isExpanded ? "lg:ml-[240px]" : "lg:ml-[90px]"
-        } ${isMobileOpen ? "ml-0" : ""} bg-white overflow-hidden`}
+        } ${isMobileOpen ? "ml-0" : ""}`}
       >
-        <AppHeader />
-        
-        {/* 라우터 변경에 따라 각각의 페이지(화면)가 그려지는 영역 */}
-        <div className="flex-1 overflow-y-auto p-4 mx-auto w-full max-w-(--breakpoint-2xl) md:p-6 bg-white">
-          <Outlet />
+        {/* 헤더 영역 (스크롤되지 않고 상단에 딱 고정됨) */}
+        <div className="shrink-0">
+          <AppHeader />
         </div>
+        
+        {/* 💡 핵심 3: 이 레이아웃에서 '유일하게' 스크롤이 허용되는 본문 영역 */}
+        {/* 내용이 길어지면 브라우저 전체가 아니라 이 main 태그 내부만 스크롤됩니다. */}
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-white relative p-4 md:p-6">
+          <div className="mx-auto w-full max-w-(--breakpoint-2xl)">
+            <Outlet />
+          </div>
+        </main>
       </div>
     </div>
   );

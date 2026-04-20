@@ -17,6 +17,7 @@ const routeTitles: Record<string, string> = {
   "/data-tables": "유저 관리",
   "/editable-tables": "리포트 관리",
   "/meeting-start": "회의 시작",
+  "/meeting-register": "회의 등록",
   // 필요한 정적 경로를 여기에 계속 추가하세요!
 };
 

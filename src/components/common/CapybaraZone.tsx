@@ -18,12 +18,18 @@ interface Scenario {
 const BARA_SCENARIOS: Scenario[] = [
   { id: "welcome", path: "/", img: "C_2.png", msg: "어서오심시오 환영합니다", color: "bg-[#FF87B4]", footerType: "text", footerValue: "반가워요!" },
   { id: "meeting_normal", path: "/meeting/live", img: "C_3.png", msg: "그대로 계속 진행하심시오", color: "bg-[#91D148]", footerType: "progress", footerValue: 50 },
+  
+  // 💡 8초 지점: 안건 이탈 주의 (노란색 상단 바, 당황한 이미지)
+  { id: "meeting_caution", path: "/meeting/live", img: "C_4.png", msg: "안건에서 벗어난 것 같슴니다..?", color: "bg-[#FFD43B]", footerType: "status", footerValue: "주의" },
+  
+  // 💡 32초 지점: 안건 이탈 경고 (빨간색 상단 바, 화난 이미지)
+  { id: "meeting_warning", path: "/meeting/live", img: "C_6.png", msg: "당장 안건으로 복귀하심시오!", color: "bg-[#FF6B6B]", footerType: "status", footerValue: "위험" },
+
   { id: "quick_normal", path: "/meeting/quick/live", img: "C_3.png", msg: "열심히 경청하고 있슴니다", color: "bg-[#91D148]", footerType: "status", footerValue: "경청 중..." },
   { id: "generating", path: "/meeting/live", img: "C_5.png", msg: "회의록을 작성 중 입니다", color: "linear-gradient(90deg, #FF8A00 0%, #7000FF 100%)", footerType: "status", footerValue: "작성 중..." },
   { id: "idle_2", path: "/home", img: "C_7.png", msg: "지금 한가하심니까?", color: "bg-gray-300", footerType: "schedule", footerValue: "26. 5. 13 / 14:00" },
   { id: "profile_setting", path: "/profile", img: "C_3.png", msg: "계정을 안전하게 관리하심시오", color: "bg-[#91D148]", footerType: "text", footerValue: "보안 점검 중" }
 ];
-
 const CapybaraZone: React.FC = () => {
   const { pathname } = useLocation();
   const [currentScenario, setCurrentScenario] = useState<Scenario>(BARA_SCENARIOS[0]);
