@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import PageMeta from "../../components/common/PageMeta";
 import CapybaraZone from "../../components/common/CapybaraZone";
 import MemberAddModal from "../../components/meetings/MemberAddModal"; 
@@ -33,7 +33,50 @@ const upcomingMeetings = [
 
 export default function MeetingRegister() {
   const [title, setTitle] = useState("");
+  
   const [date, setDate] = useState("");
+  const dateInputRef = useRef<HTMLInputElement | null>(null);
+
+const today = new Date().toISOString().split("T")[0];
+
+const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const value = e.target.value;
+
+  if (!value) {
+    setDate("");
+    return;
+  }
+
+  // 오늘 이전 날짜 선택 불가
+  if (value < today) {
+    return;
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+
+  // 연도 1~9999
+  if (year < 1 || year > 9999) return;
+
+  // 월 1~12
+  if (month < 1 || month > 12) return;
+
+  // 일 1~31
+  if (day < 1 || day > 31) return;
+
+  setDate(value);
+};
+
+const openDatePicker = () => {
+  if (!dateInputRef.current) return;
+
+  // 크롬 계열 브라우저에서는 달력 팝업을 바로 열 수 있음
+  if (typeof dateInputRef.current.showPicker === "function") {
+    dateInputRef.current.showPicker();
+  } else {
+    // showPicker 지원 안 하면 input에 포커스
+    dateInputRef.current.focus();
+  }
+};
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [room, setRoom] = useState("");
@@ -61,6 +104,7 @@ export default function MeetingRegister() {
   const handleRemoveMember = (nameToRemove: string) => {
     setAttendees(prev => prev.filter(name => name !== nameToRemove));
   };
+  
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,10 +215,7 @@ export default function MeetingRegister() {
             <div className="flex-1 overflow-y-auto no-scrollbar bg-white">
               <form onSubmit={handleSubmit} className="p-8 lg:p-10 space-y-12">
                 <div className="space-y-6">
-                  <div>
-                    <label className="block text-[14px] font-bold text-gray-700 mb-2.5">회의 제목 <span className="text-red-500">*</span></label>
-                    <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="예: 신규 프로젝트 UI/UX 킥오프" className="w-full bg-white border border-gray-200 rounded-xl px-5 py-4 text-[15px] font-bold text-gray-900 focus:border-[#91D148] focus:ring-2 focus:ring-[#91D148]/20 outline-none transition-all shadow-sm" />
-                  </div>
+                  
                   <div>
                     <label className="block text-[14px] font-bold text-gray-700 mb-2.5">연관 프로젝트 (색상 라벨)</label>
                     <div className="flex flex-wrap gap-3">
@@ -188,23 +229,70 @@ export default function MeetingRegister() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div>
-                    <label className="block text-[14px] font-bold text-gray-700 mb-2.5">날짜 <span className="text-red-500">*</span></label>
-                    <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl px-5 py-4 text-[15px] font-bold text-gray-900 focus:border-[#91D148] outline-none transition-all shadow-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-[14px] font-bold text-gray-700 mb-2.5">회의 장소</label>
-                    <input type="text" value={room} onChange={(e) => setRoom(e.target.value)} placeholder="소회의실 1호 또는 화상 링크" className="w-full bg-white border border-gray-200 rounded-xl px-5 py-4 text-[15px] font-bold text-gray-900 focus:border-[#91D148] outline-none transition-all shadow-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-[14px] font-bold text-gray-700 mb-2.5">시작 시간 <span className="text-red-500">*</span></label>
-                    <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl px-5 py-4 text-[15px] font-bold text-gray-900 focus:border-[#91D148] outline-none transition-all shadow-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-[14px] font-bold text-gray-700 mb-2.5">종료 시간 <span className="text-red-500">*</span></label>
-                    <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl px-5 py-4 text-[15px] font-bold text-gray-900 focus:border-[#91D148] outline-none transition-all shadow-sm" />
-                  </div>
-                </div>
+  <div>
+    <label className="block text-[14px] font-bold text-gray-700 mb-2.5">
+      날짜 <span className="text-red-500">*</span>
+    </label>
+
+    <div className="relative">
+      <input
+        ref={dateInputRef}
+        type="date"
+        value={date}
+        onChange={handleDateChange}
+        min={today}
+        max="9999-12-31"
+        className="w-full bg-white border border-gray-200 rounded-xl pl-5 pr-14 py-4 text-[15px] font-bold text-gray-900 focus:border-[#91D148] outline-none transition-all shadow-sm"
+      />
+
+      <button
+        type="button"
+        onClick={openDatePicker}
+        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#91D148] transition-colors"
+        aria-label="날짜 선택"
+      >
+        <CalendarIcon />
+      </button>
+    </div>
+  </div>
+
+  <div>
+    <label className="block text-[14px] font-bold text-gray-700 mb-2.5">
+      회의 장소
+    </label>
+    <input
+      type="text"
+      value={room}
+      onChange={(e) => setRoom(e.target.value)}
+      placeholder="소회의실 1호 또는 화상 링크"
+      className="w-full bg-white border border-gray-200 rounded-xl px-5 py-4 text-[15px] font-bold text-gray-900 focus:border-[#91D148] outline-none transition-all shadow-sm"
+    />
+  </div>
+
+  <div>
+    <label className="block text-[14px] font-bold text-gray-700 mb-2.5">
+      시작 시간 <span className="text-red-500">*</span>
+    </label>
+    <input
+      type="time"
+      value={startTime}
+      onChange={(e) => setStartTime(e.target.value)}
+      className="w-full bg-white border border-gray-200 rounded-xl px-5 py-4 text-[15px] font-bold text-gray-900 focus:border-[#91D148] outline-none transition-all shadow-sm"
+    />
+  </div>
+
+  <div>
+    <label className="block text-[14px] font-bold text-gray-700 mb-2.5">
+      종료 시간 <span className="text-red-500">*</span>
+    </label>
+    <input
+      type="time"
+      value={endTime}
+      onChange={(e) => setEndTime(e.target.value)}
+      className="w-full bg-white border border-gray-200 rounded-xl px-5 py-4 text-[15px] font-bold text-gray-900 focus:border-[#91D148] outline-none transition-all shadow-sm"
+    />
+  </div>
+</div>
 
                 <div className="space-y-6">
                   <div>
