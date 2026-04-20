@@ -35,6 +35,7 @@ const LiveMeeting: React.FC = () => {
   const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
   const [meetingMembers, setMeetingMembers] = useState(["김철수", "이영희", "박지민"]);
 
+  // ★ 신규 상태: 발화자 수정 모드 구분용 (일괄 vs 개별)
   const [speakerEditMode, setSpeakerEditMode] = useState<'bulk' | 'single'>('bulk');
   const [editingScriptId, setEditingScriptId] = useState<number | null>(null);
 
@@ -56,10 +57,7 @@ const LiveMeeting: React.FC = () => {
   const [isRecording, setIsRecording] = useState(true);
   const [waveforms, setWaveforms] = useState<number[]>(Array(35).fill(4));
   const [isDeviationDetected, setIsDeviationDetected] = useState(false);
-  
   const [currentBaraId, setCurrentBaraId] = useState("meeting_normal");
-  // 💡 핵심 1: 바라가 말할 대사를 저장하는 상태 추가
-  const [currentBaraMessage, setCurrentBaraMessage] = useState("오늘 주간 정기 회의를 시작합니다! 꼼꼼히 기록할게요 🐹");
 
   const [agendas, setAgendas] = useState([
     { id: 1, text: "메인 피드 레이아웃 개편안 검토", isCompleted: false, summary: "" },
@@ -93,17 +91,23 @@ const LiveMeeting: React.FC = () => {
   ];
   const filteredLogs = mockMeetingLogs.filter(log => log.title.includes(searchTerm) || log.keywords.some(k => k.includes(searchTerm)));
 
-  // 💡 핵심 2: customMessage 매개변수를 받도록 업그레이드
-  const emitBara = (scenarioId: string, progress?: number, customMessage?: string) => {
-    const event = new CustomEvent('UPDATE_BARA', { detail: { scenarioId, progress, customMessage } });
+  const emitBara = (scenarioId: string, progress?: number) => {
+    const event = new CustomEvent('UPDATE_BARA', { detail: { scenarioId, progress } });
     window.dispatchEvent(event);
   }
 
+  // ★ 수정됨: 모달 저장 시 분기 처리 (일괄 vs 개별)
   const handleSpeakerChange = (newName: string) => {
     if (speakerEditMode === 'bulk') {
-      setLiveScript(prev => prev.map(script => script.user === selectedSpeaker ? { ...script, user: newName } : script));
+      // 일괄 변경: 해당 이름 전체를 교체
+      setLiveScript(prev => prev.map(script => 
+        script.user === selectedSpeaker ? { ...script, user: newName } : script
+      ));
     } else if (speakerEditMode === 'single' && editingScriptId !== null) {
-      setLiveScript(prev => prev.map(script => script.id === editingScriptId ? { ...script, user: newName } : script));
+      // 개별 변경: 클릭했던 딱 그 한 줄만 교체!
+      setLiveScript(prev => prev.map(script => 
+        script.id === editingScriptId ? { ...script, user: newName } : script
+      ));
     }
   };
 
@@ -126,83 +130,66 @@ const LiveMeeting: React.FC = () => {
   }, [isRecording]);
 
   useEffect(() => {
-  const completedCount = agendas.filter(a => a.isCompleted).length;
-  const progress = agendas.length > 0 ? Math.floor((completedCount / agendas.length) * 100) : 0;
+    let targetBaraId = currentBaraId;
+    let isDeviation = isDeviationDetected;
+    const completedCount = agendas.filter(a => a.isCompleted).length;
+    const progress = agendas.length > 0 ? Math.floor((completedCount / agendas.length) * 100) : 0;
 
-  // 1. 안건 이탈 알림 (8초)
-  if (recordingTime === 8) {
-    setIsDeviationDetected(true);
-    setCurrentBaraId("meeting_caution");
-    
-    // 💡 메시지 없이 ID만 보냅니다. 바라존이 시나리오에서 "안건에서 벗어난 것 같슴니다..?"를 출력합니다.
-    emitBara("meeting_caution", progress); 
-    
-    // 채팅창에는 기록을 위해 남겨줍니다 (선택사항)
-    setChatList(prev => [...prev, { id: Date.now(), sender: "bara", text: "🚨 안건 이탈이 감지되었습니다!", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
-    setActiveSideTab("chat");
-  } 
-  
-  // 2. 안건 복귀 및 첫 번째 안건 완료 (15초)
-  else if (recordingTime === 15) {
-    setIsDeviationDetected(false);
-    setCurrentBaraId("meeting_normal");
-    
-    // 💡 ID만 쏘면 이미지와 기본 대사로 돌아옵니다.
-    emitBara("meeting_normal", progress);
-    
-    setAgendas(prev => prev.map(a => a.id === 1 ? { ...a, isCompleted: true, summary: "공지 중심으로 우선 통합 후, 전체 통합 구조로 확장하기로 합의됨" } : a));
-  } 
-  
-  // 3. 두 번째 안건 완료 (25초)
-  else if (recordingTime === 25) {
-    setAgendas(prev => prev.map(a => a.id === 2 ? { ...a, isCompleted: true, summary: "옵셔널 전환 후, 이후 단계에서 설정 유도하는 것으로 결정됨" } : a));
-    emitBara("meeting_normal", progress); // 진행률 업데이트용
-  } 
-  
-  // 4. 심각한 안건 이탈 (32초)
-  else if (recordingTime === 32) {
-    setIsDeviationDetected(true);
-    setCurrentBaraId("meeting_warning");
-    
-    // 💡 시나리오에 정의된 화난 바라 이미지와 "당장 복귀하심시오!" 대사가 출력됩니다.
-    emitBara("meeting_warning", progress);
-    
-    setChatList(prev => [...prev, { id: Date.now(), sender: "bara", text: "😡 회의 복귀가 시급합니다!", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
-  } 
-  
-  // 5. 종료 임박 안내들 (40, 48, 55초)
-  // 이 부분은 시나리오에 없는 '특수한 시간 메시지'이므로 customMessage를 활용합니다.
-  else if (recordingTime === 40) {
-    setIsDeviationDetected(false);
-    if (agendas.some(a => !a.isCompleted)) {
-      setToastMessage("회의 종료 10분 전 입니다. ⏰");
-      setToastSubMessage(`현재 진행률 : ${progress}%`);
-      setIsToastVisible(true);
-      emitBara("meeting_normal", progress, "회의 종료 10분 전입니다! 마무리를 준비해 보심시오 🐹");
+    if (recordingTime === 8) {
+      targetBaraId = "meeting_caution";
+      isDeviation = true;
+      setChatList(prev => [...prev, { id: Date.now(), sender: "bara", text: "🚨 잠시만요! 현재 '점심 메뉴'에 대해 이야기하고 계신 것 같아요. 안건으로 돌아가볼까요? 🐹", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+      setActiveSideTab("chat");
+    } else if (recordingTime === 15) {
+      targetBaraId = "meeting_normal";
+      isDeviation = false;
+      setAgendas(prev => prev.map(a => a.id === 1 ? { ...a, isCompleted: true, summary: "공지 중심으로 우선 통합 후, 전체 통합 구조로 확장하기로 합의됨" } : a));
+    } else if (recordingTime === 25) {
+      setAgendas(prev => prev.map(a => a.id === 2 ? { ...a, isCompleted: true, summary: "옵셔널 전환 후, 이후 단계에서 설정 유도하는 것으로 결정됨" } : a));
+    } else if (recordingTime === 32) {
+      targetBaraId = "meeting_warning";
+      isDeviation = true;
+      setChatList(prev => [...prev, { id: Date.now(), sender: "bara", text: "😡 삐빅! 회의가 산으로 가고 있습니다! 당장 복귀하세요!", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+    } 
+    else if (recordingTime === 40) {
+      targetBaraId = "meeting_normal";
+      isDeviation = false;
+      if (agendas.some(a => !a.isCompleted)) {
+        setToastMessage("회의 종료 10분 전 입니다. ⏰");
+        setToastSubMessage(`현재 진행률 : ${progress}%`);
+        setIsToastVisible(true);
+      }
+    } 
+    else if (recordingTime === 48) {
+      if (agendas.some(a => !a.isCompleted)) {
+        setToastMessage("회의 종료 5분 전 입니다. ⏳");
+        setToastSubMessage(`현재 진행률 : ${progress}%`);
+        setIsToastVisible(true);
+      }
     }
-  } 
-  // ... 생략 ...
-  else if (recordingTime === 65) {
-    setIsCarryOverModalOpen(true);
-  }
+    else if (recordingTime === 55) {
+      if (agendas.some(a => !a.isCompleted)) {
+        setToastMessage("회의 종료 3분 전 입니다! 🔥");
+        setToastSubMessage(`마무리를 준비해주세요. (진행률 : ${progress}%)`);
+        setIsToastVisible(true);
+      }
+    }
+    else if (recordingTime === 65) {
+      setIsCarryOverModalOpen(true);
+    }
 
-// eslint-disable-next-line react-hooks/exhaustive-deps
-}, [recordingTime]);
+    if (targetBaraId !== currentBaraId && !isGenerating) setCurrentBaraId(targetBaraId);
+    if (isDeviation !== isDeviationDetected && !isGenerating) setIsDeviationDetected(isDeviation);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recordingTime]);
+
   useEffect(() => {
     const completedCount = agendas.filter(a => a.isCompleted).length;
     const calculatedProgress = agendas.length > 0 ? Math.floor((completedCount / agendas.length) * 100) : 0;
-    
-    if (isGenerating) { 
-      // 💡 종료 중일 때의 대사
-      emitBara("generating", calculatedProgress, "회의록을 열심히 생성하고 있어요! 잠시만 기다려주세요 🐹📝"); 
-      return; 
-    }
-    
-    if (!isStopModalOpen && !isCarryOverModalOpen) {
-      // 💡 평상시/이탈 시 대사 발송
-      emitBara(currentBaraId, calculatedProgress, currentBaraMessage);
-    }
-  }, [agendas, currentBaraId, currentBaraMessage, isStopModalOpen, isCarryOverModalOpen, isGenerating]);
+    if (isGenerating) { emitBara("generating", calculatedProgress); return; }
+    if (!isStopModalOpen && !isCarryOverModalOpen) emitBara(currentBaraId, calculatedProgress);
+  }, [agendas, currentBaraId, isStopModalOpen, isCarryOverModalOpen, isGenerating]);
 
   useEffect(() => {
     setChatList([{ id: Date.now(), sender: "bara", text: "안녕하세요! 회의바라입니다. 무엇이든 물어보세요! 실시간으로 답변해 드릴게요. 🐹", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
@@ -346,11 +333,13 @@ const LiveMeeting: React.FC = () => {
                   {liveScript.filter(item => item.time <= recordingTime).map((item) => (
                     <div key={item.id} className={`group relative space-y-2 animate-fade-in-up ${item.text.includes("점심") || item.text.includes("넷플릭스") ? 'border-2 border-red-200 rounded-2xl p-2 bg-red-50/30' : ''}`}>
                       <div className="absolute -left-[21px] top-2 w-3 h-3 bg-white border-2 border-gray-200 rounded-full group-hover:border-[#91D148] transition-colors"></div>
+                      
+                      {/* ★ 개별 발화자 수정 버튼으로 변경 */}
                       <button 
                         onClick={() => {
                           setSpeakerEditMode('single');
                           setSelectedSpeaker(item.user);
-                          setEditingScriptId(item.id); 
+                          setEditingScriptId(item.id); // 어떤 줄을 고치는지 ID 저장
                           setIsModalOpen(true);
                         }}
                         className="font-bold text-gray-900 text-sm flex items-center gap-1.5 hover:text-[#91D148] transition-colors group mb-1 focus:outline-none"
@@ -487,6 +476,7 @@ const LiveMeeting: React.FC = () => {
                 </div>
               ) : activeSideTab === "speakers" ? (
                 <div className="space-y-4 animate-fade-in overflow-y-auto no-scrollbar pt-2">
+                  {/* ★ 우측 패널 발화자 변경 버튼 (일괄 변경 모드) */}
                   {activeSpeakers.map((speakerName, index) => (
                     <div key={index} className="flex items-center justify-between bg-white p-5 rounded-2xl shadow-sm border border-transparent hover:border-[#91D148]/30 transition-all">
                       <div className="flex items-center gap-4">
@@ -514,6 +504,7 @@ const LiveMeeting: React.FC = () => {
       
       <MemberAddModal isOpen={isMemberModalOpen} onClose={() => setIsMemberModalOpen(false)} onAdd={handleAddMembers} />
       
+      {/* ★ 모달에 mode 전달 및 onSave 연결 */}
       <SpeakerEditModal 
         isOpen={isModalOpen} 
         onClose={() => { setIsModalOpen(false); setEditingScriptId(null); }} 
