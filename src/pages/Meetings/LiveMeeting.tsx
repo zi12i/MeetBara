@@ -59,30 +59,37 @@ const LiveMeeting: React.FC = () => {
   const [isDeviationDetected, setIsDeviationDetected] = useState(false);
   const [currentBaraId, setCurrentBaraId] = useState("meeting_normal");
 
+  const MEETING_TOTAL_TIME = 60 * 60;
+
   const [agendas, setAgendas] = useState([
     { id: 1, text: "메인 피드 레이아웃 개편안 검토", isCompleted: false, summary: "" },
     { id: 2, text: "알림센터 통합 구조 설계", isCompleted: false, summary: "" },
     { id: 3, text: "옵셔널 전환 설정 유도 방안", isCompleted: false, summary: "" },
-    { id: 4, text: "추가 지표(체류시간) 도입 여부", isCompleted: false, summary: "" }
+    { id: 4, text: "추가 지표(체류시간) 도입 여부", isCompleted: false, summary: "" },
+    { id: 5, text: "마케팅 자동화 툴 연동 건", isCompleted: false, summary: "" } 
   ]);
 
   const [liveScript, setLiveScript] = useState([
-    { id: 1, time: 1, user: "김철수", text: "아아, 마이크 테스트. 다들 들어오셨나요? 오늘 주간 정기 회의 시작할게요." },
-    { id: 2, time: 4, user: "이영희", text: "네, 첫 번째 안건인 메인 피드 레이아웃 개편안부터 보시죠." },
-    { id: 3, time: 8, user: "참가자 3", text: "어, 근데 우리 오늘 점심 뭐 먹죠? 근처에 새로 생긴 돈가스집 어때요? (안건 이탈)" },
-    { id: 4, time: 11, user: "김철수", text: "아, 넵. 다시 본론으로 돌아와서... 공지를 우선 통합하고 확장하시죠." },
-    { id: 5, time: 14, user: "이영희", text: "동의합니다. 그렇게 확정하시죠." },
-    { id: 6, time: 18, user: "김철수", text: "다음은 알림센터 통합 건입니다. 옵셔널로 가는 게 맞을 것 같아요." },
-    { id: 7, time: 23, user: "참가자 3", text: "네, 초기엔 옵셔널로 가고 나중에 설정 유도 팝업 띄우는 걸로 결정하죠." },
-    { id: 8, time: 31, user: "이영희", text: "그나저나 주말에 넷플릭스 보셨어요? 재미있던데..." },
-  ]);
+      { id: 1, time: 1, user: "김철수", text: "오늘 주간 회의 시작할게요. 첫 번째 안건인 메인 피드 레이아웃부터 보시죠." },
+      { id: 2, time: 5, user: "이영희", text: "공지 섹션을 상단으로 올리는 게 좋겠어요." },
+      { id: 3, time: 8, user: "박지민", text: "아, 근데 오늘 점심 근처 돈가스집 어때요? 새로 생겼던데. (안건 이탈)" },
+      { id: 4, time: 12, user: "김철수", text: "아... 넵. 일단 공지 중심으로 우선 통합하고 나중에 확장하는 걸로 확정하시죠." },
+      { id: 5, time: 18, user: "이영희", text: "좋습니다. 다음 알림센터 통합 건은 옵셔널로 설계할까요?" },
+      { id: 6, time: 23, user: "박지민", text: "네, 초기엔 옵셔널로 가고 팝업으로 유도하는 게 UX 면에서 낫겠네요." },
+      { id: 7, time: 31, user: "이영희", text: "그건 그렇고 주말에 넷플릭스 영화 보셨어요? 진짜 대박이던데... (심각한 이탈)" },
+      { id: 8, time: 36, user: "김철수", text: "아차, 회의 집중해야죠! 추가 지표는 체류시간 도입하는 걸로 결론 낼까요?" },
+      { id: 9, time: 42, user: "박지민", text: "네, 체류시간 지표를 우선 도입하고 나머지는 다음 분기로 넘기시죠." },
+      { id: 10, time: 48, user: "김철수", text: "마지막으로 마케팅 자동화 툴 연동 건 논의해야 하는데 시간이..." },
+    ]);
 
   const activeSpeakers = Array.from(new Set(liveScript.map(script => script.user)));
 
-  const fullSummary = [
-    { time: 1, title: "회의 시작 및 도입", content: ["주간 정기 회의 시작", "메인 피드 개편 논의 시작"] },
-    { time: 15, title: "메인 피드 레이아웃 결정", content: ["공지 중심으로 우선 통합", "추후 전체 통합 구조로 확장 예정"] },
-    { time: 25, title: "알림센터 통합 구조 결정", content: ["초기 도입 시 옵셔널로 전환", "이후 단계에서 팝업을 통한 설정 유도"] }
+const fullSummary = [
+    { time: 1, title: "회의 시작 및 도입", content: ["주간 정기 회의 개시", "메인 피드 레이아웃 검토 시작"] },
+    { time: 15, title: "안건 1: 메인 피드 레이아웃 결정", content: ["공지 섹션 중심 우선 통합 합의"] },
+    { time: 25, title: "안건 2: 알림센터 통합 설계", content: ["초기 도입 시 옵셔널 전환 방식 채택", "팝업을 통한 설정 유도"] },
+    { time: 40, title: "안건 3: 옵셔널 설정 유도 방안", content: ["지표 도입 우선순위 조정을 통해 연기"] },
+    { time: 50, title: "안건 4: 추가 지표 도입 결정", content: ["체류시간 지표 우선 도입 확정"] }
   ];
 
   const meetingKeywords = ["메인피드", "알림센터", "검색필터", "옵셔널전환", "점심메뉴", "UX개선", "단계적통합", "구조설계"];
@@ -91,10 +98,13 @@ const LiveMeeting: React.FC = () => {
   ];
   const filteredLogs = mockMeetingLogs.filter(log => log.title.includes(searchTerm) || log.keywords.some(k => k.includes(searchTerm)));
 
-  const emitBara = (scenarioId: string, progress?: number) => {
-    const event = new CustomEvent('UPDATE_BARA', { detail: { scenarioId, progress } });
-    window.dispatchEvent(event);
-  }
+
+  const emitBara = (scenarioId: string, progress?: number, customMessage?: string, timeLeft?: string) => {
+      const event = new CustomEvent('UPDATE_BARA', { 
+        detail: { scenarioId, progress, customMessage, timeLeft } 
+      });
+      window.dispatchEvent(event);
+    }
 
   // ★ 수정됨: 모달 저장 시 분기 처리 (일괄 vs 개별)
   const handleSpeakerChange = (newName: string) => {
@@ -121,68 +131,89 @@ const LiveMeeting: React.FC = () => {
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isRecording) {
-      interval = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-        setWaveforms(prev => prev.map(() => Math.floor(Math.random() * 12) + 4));
-      }, 1000);
-    }
+          interval = setInterval(() => {
+            setRecordingTime(prev => prev + 1);
+          }, 1000);
+        }
     return () => clearInterval(interval);
   }, [isRecording]);
 
-  useEffect(() => {
-    let targetBaraId = currentBaraId;
-    let isDeviation = isDeviationDetected;
-    const completedCount = agendas.filter(a => a.isCompleted).length;
-    const progress = agendas.length > 0 ? Math.floor((completedCount / agendas.length) * 100) : 0;
-
-    if (recordingTime === 8) {
-      targetBaraId = "meeting_caution";
-      isDeviation = true;
-      setChatList(prev => [...prev, { id: Date.now(), sender: "bara", text: "🚨 잠시만요! 현재 '점심 메뉴'에 대해 이야기하고 계신 것 같아요. 안건으로 돌아가볼까요? 🐹", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
-      setActiveSideTab("chat");
-    } else if (recordingTime === 15) {
-      targetBaraId = "meeting_normal";
-      isDeviation = false;
-      setAgendas(prev => prev.map(a => a.id === 1 ? { ...a, isCompleted: true, summary: "공지 중심으로 우선 통합 후, 전체 통합 구조로 확장하기로 합의됨" } : a));
-    } else if (recordingTime === 25) {
-      setAgendas(prev => prev.map(a => a.id === 2 ? { ...a, isCompleted: true, summary: "옵셔널 전환 후, 이후 단계에서 설정 유도하는 것으로 결정됨" } : a));
-    } else if (recordingTime === 32) {
-      targetBaraId = "meeting_warning";
-      isDeviation = true;
-      setChatList(prev => [...prev, { id: Date.now(), sender: "bara", text: "😡 삐빅! 회의가 산으로 가고 있습니다! 당장 복귀하세요!", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
-    } 
-    else if (recordingTime === 40) {
-      targetBaraId = "meeting_normal";
-      isDeviation = false;
-      if (agendas.some(a => !a.isCompleted)) {
-        setToastMessage("회의 종료 10분 전 입니다. ⏰");
-        setToastSubMessage(`현재 진행률 : ${progress}%`);
-        setIsToastVisible(true);
-      }
-    } 
-    else if (recordingTime === 48) {
-      if (agendas.some(a => !a.isCompleted)) {
-        setToastMessage("회의 종료 5분 전 입니다. ⏳");
-        setToastSubMessage(`현재 진행률 : ${progress}%`);
-        setIsToastVisible(true);
-      }
+// === 💡 강화된 시연용 가상 시간(빨리감기) 계산기 ===
+useEffect(() => {
+  const completedCount = agendas.filter(a => a.isCompleted).length;
+  const progress = Math.floor((completedCount / agendas.length) * 100);
+  
+  const getVirtualTimeLeft = (sec: number) => {
+    // 65초 이상: 종료
+    if (sec >= 65) return "00:00";
+    
+    // 55~64초: 3분(180초)부터 역산
+    if (sec >= 55) {
+      const remain = 180 - (sec - 55);
+      const m = Math.floor(remain / 60);
+      const s = remain % 60;
+      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     }
-    else if (recordingTime === 55) {
-      if (agendas.some(a => !a.isCompleted)) {
-        setToastMessage("회의 종료 3분 전 입니다! 🔥");
-        setToastSubMessage(`마무리를 준비해주세요. (진행률 : ${progress}%)`);
-        setIsToastVisible(true);
-      }
+    
+    // 48~54초: 5분(300초)부터 역산
+    if (sec >= 48) {
+      const remain = 300 - (sec - 48);
+      const m = Math.floor(remain / 60);
+      const s = remain % 60;
+      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     }
-    else if (recordingTime === 65) {
-      setIsCarryOverModalOpen(true);
+    
+    // 40~47초: 10분(600초)부터 역산
+    if (sec >= 40) {
+      const remain = 600 - (sec - 40);
+      const m = Math.floor(remain / 60);
+      const s = remain % 60;
+      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     }
+    
+    // 0~39초: 60분(3600초)부터 정상 역산
+    const remain = 3600 - sec;
+    const m = Math.floor(remain / 60);
+    const s = remain % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
-    if (targetBaraId !== currentBaraId && !isGenerating) setCurrentBaraId(targetBaraId);
-    if (isDeviation !== isDeviationDetected && !isGenerating) setIsDeviationDetected(isDeviation);
+  const timeLeftStr = getVirtualTimeLeft(recordingTime);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recordingTime]);
+  // --- 시나리오 이벤트 트리거 ---
+  if (recordingTime === 8) {
+    setCurrentBaraId("meeting_caution");
+    setIsDeviationDetected(true);
+    setChatList(prev => [...prev, { id: Date.now(), sender: "bara", text: "🚨 안건에서 조금 벗어난 것 같슴니다..?", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+  } 
+  else if (recordingTime === 15) {
+    setCurrentBaraId("meeting_normal");
+    setIsDeviationDetected(false);
+    setAgendas(prev => prev.map(a => a.id === 1 ? { ...a, isCompleted: true, summary: "공지 중심 통합 합의" } : a));
+  }
+  else if (recordingTime === 32) {
+    setCurrentBaraId("meeting_warning");
+    setIsDeviationDetected(true);
+  }
+  else if (recordingTime === 40) {
+    setAgendas(prev => prev.map(a => a.id === 3 ? { ...a, isCompleted: true, summary: "지표 도입 순위 조정" } : a));
+    setToastMessage("회의 종료 10분 전 입니다. ⏰");
+    setIsToastVisible(true);
+  }
+  else if (recordingTime === 50) {
+    setAgendas(prev => prev.map(a => a.id === 4 ? { ...a, isCompleted: true, summary: "체류시간 지표 도입 확정" } : a));
+  }
+  else if (recordingTime === 65) {
+    setIsCarryOverModalOpen(true);
+  }
+
+  // 💡 [무조건 실행] 매 초마다 계산된 가상 시간을 바라에게 쏩니다.
+  // 이 덕분에 '60:00' 같은 초기값이 끼어들 틈이 없습니다.
+  if (!isGenerating && !isStopModalOpen) {
+    emitBara(currentBaraId, progress, undefined, timeLeftStr);
+  }
+
+}, [recordingTime]);
 
   useEffect(() => {
     const completedCount = agendas.filter(a => a.isCompleted).length;
