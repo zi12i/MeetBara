@@ -254,7 +254,7 @@ const LiveMeeting: React.FC = () => {
       `}</style>
 
       {isGenerating ? (
-        <div className="flex flex-col items-center justify-center w-full h-[calc(100vh-120px)] bg-white rounded-2xl shadow-sm relative">
+        <div className="flex flex-col items-center justify-center w-full h-screen bg-white rounded-2xl shadow-sm relative">
           <h2 className="text-[32px] font-black text-gray-800 mb-16 tracking-widest">LOADING...</h2>
           <div className="relative w-full max-w-[800px] h-2 bg-[#D6E6F5] rounded-full">
             <div className="absolute bottom-0 pb-2 flex justify-center items-end w-[120px]" style={{ animation: 'walkBara 4s linear infinite' }}>
@@ -264,7 +264,7 @@ const LiveMeeting: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-120px)] bg-white overflow-hidden relative">
+        <div className="flex flex-col lg:flex-row gap-6 h-screen bg-white overflow-hidden relative p-6">
           
           <div className="flex-1 flex flex-col gap-6 p-4 overflow-hidden">
             <div className={`rounded-2xl p-6 space-y-4 shadow-sm border transition-colors duration-500 ${isDeviationDetected ? 'bg-red-50 border-red-200' : 'bg-[#F4F9ED] border-[#91D148]/10'} shrink-0`}>

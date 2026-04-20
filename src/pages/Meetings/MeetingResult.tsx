@@ -149,7 +149,7 @@ const MeetingResult: React.FC = () => {
       `}</style>
 
       {isSaving ? (
-        <div className="flex flex-col items-center justify-center w-full h-[calc(100vh-120px)] bg-white rounded-2xl shadow-sm relative animate-fade-in">
+        <div className="flex flex-col items-center justify-center w-full h-screen bg-white rounded-2xl shadow-sm relative animate-fade-in">
           <h2 className="text-[32px] font-black text-gray-800 mb-4 tracking-widest">SAVING...</h2>
           <p className="text-gray-500 font-bold mb-16">회의록을 안전하게 DB에 저장하고 있습니다 🐹</p>
           <div className="relative w-full max-w-[800px] h-2 bg-[#D6E6F5] rounded-full overflow-visible">
@@ -160,7 +160,7 @@ const MeetingResult: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="flex flex-col lg:flex-row gap-8 h-[calc(100vh-120px)] bg-white p-6 overflow-hidden" onClick={() => { if(isExportMenuOpen) setIsExportMenuOpen(false); }}>
+        <div className="flex flex-col lg:flex-row gap-8 h-screen bg-white p-6 overflow-hidden p-6" onClick={() => { if(isExportMenuOpen) setIsExportMenuOpen(false); }}>
           
           <TemplateEditModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} initialContent={templateContent} onSave={setTemplateContent} />
           <ScriptEditModal isOpen={isScriptModalOpen} onClose={() => setIsScriptModalOpen(false)} onApply={handleApplyCorrections} onSingleApply={handleSingleApply} originalScripts={scripts} initialCorrections={pendingCorrections} />

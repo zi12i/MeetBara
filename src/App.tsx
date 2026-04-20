@@ -17,10 +17,12 @@ import BasicTables from "./pages/Tables/BasicTables";
 import FormElements from "./pages/Forms/FormElements";
 import Blank from "./pages/Blank";
 import AppLayout from "./layout/AppLayout";
+import MeetingLayout from "./pages/Meetings/MeetingLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
+import MeetingStart from "./pages/Meetings/MeetingStart";
 import LiveMeeting from "./pages/Meetings/LiveMeeting";
-import QuickMeeting from "./components/meetings/QuickMeeting"; 
+import QuickMeeting from "./pages/Meetings/QuickMeeting"; 
 import MeetingResult from "./pages/Meetings/MeetingResult";
 import Status from "./pages/Manage/Status";
 
@@ -33,11 +35,7 @@ export default function App() {
           {/* Dashboard Layout */}
           <Route element={<AppLayout />}>
             <Route index path="/" element={<Home />} />
-            {/* Live Meeting Page */}
-            <Route path="/meeting/:id/live" element={<LiveMeeting />} />
-            <Route path="/meeting/quick/live" element={<QuickMeeting />} /> {/* 빠른 회의 시작 라우트 */}
-            <Route path="/meeting/:id/result" element={<MeetingResult />} />
-
+            <Route path="/meeting-start" element={<MeetingStart />} />
             {/* Meeting Management */}
             <Route path="/status" element={<Status />} />
             {/* Others Page */}
@@ -74,7 +72,11 @@ export default function App() {
           {/* Auth Layout */}
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
-
+          <Route element={<MeetingLayout />}>
+            <Route path="/meeting/:id/live" element={<LiveMeeting />} />
+            <Route path="/meeting/quick/live" element={<QuickMeeting />} />
+            <Route path="/meeting/:id/result" element={<MeetingResult />} />
+          </Route>
           {/* Fallback Route */}
           <Route path="*" element={<NotFound />} />
         </Routes>

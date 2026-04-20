@@ -141,15 +141,25 @@ const AppSidebar: React.FC = () => {
     }, 150);
   };
 
+  // 👉 새 탭으로 회의창을 띄우는 핸들러
+  const handleQuickMeetingOpen = (e: React.MouseEvent, path: string) => {
+    e.preventDefault();
+    // 새 창(새 탭)으로 열기
+    window.open(path, "_blank", "noopener,noreferrer");
+  };
+
   const renderTopFixedItems = (items: NavItem[]) => (
     <ul className="flex flex-col">
       {items.map((nav) => {
         const active = isActive(nav.path);
+        const isQuickStart = nav.name === "빠른 회의 시작";
         return (
           <li key={nav.name}>
             {nav.path && (
               <Link
                 to={nav.path}
+                // 👉 '빠른 회의 시작'인 경우 클릭 시 핸들러 가로채기
+                onClick={(e) => isQuickStart && handleQuickMeetingOpen(e, nav.path!)}
                 className={`flex items-center transition-colors duration-200 top-menu-item ${
                   isExpanded || isMobileOpen
                     ? "w-full py-4 pr-5 border-b border-gray-100"
