@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // ★ 페이지 이동을 위한 useNavigate 추가
 import PageMeta from "../../components/common/PageMeta";
+import CapybaraZone from "../../components/common/CapybaraZone";
+import Toast from "../../components/common/Toast"; 
+import { createPortal } from "react-dom";
 
 // 1. 데이터 타입 정의
 interface Participant {
@@ -12,6 +16,13 @@ interface Participant {
 interface Reference {
   label: string;
   url: string;
+}
+
+interface ActionItem {
+  assignee: string;
+  content: string;
+  status: "완료" | "진행중" | "지연";
+  hasResult: boolean;
 }
 
 interface FamiliarityData {
@@ -29,12 +40,12 @@ interface FamiliarityData {
 interface UnresolvedData {
   id: number;
   type: "unresolved";
-  meetingDate: string;   // 미결정발생일 (과거)
+  meetingDate: string;
   meetingTime: string;
   meetingName: string;
-  projectName: string;    // 프로젝트명
-  agendaTitle: string;    // 미결정안건 명
-  scheduledMeeting: string; // 상정예정회의 (미래)
+  projectName: string;
+  agendaTitle: string;
+  scheduledMeeting: string;
   scheduledTime: string; 
   deadline: string;
   description: string;
@@ -44,17 +55,39 @@ interface UnresolvedData {
   color?: string;
 }
 
+interface TaskData {
+  id: number;
+  type: "task";
+  meetingName: string;
+  meetingDate: string;
+  projectName: string;
+  manager: string;
+  completedCount: number;
+  totalCount: number;
+  status: "지연발생" | "진행중" | "완료";
+  description: string;
+  actionItems: ActionItem[];
+  aiSuggestion: string;
+  color?: string;
+}
+
 const Status: React.FC = () => {
+  const navigate = useNavigate(); // ★ navigate 함수 초기화
   const [activeTab, setActiveTab] = useState("familiarity");
-  const [selectedItem, setSelectedItem] = useState<FamiliarityData | UnresolvedData | null>(null);
+  const [selectedItem, setSelectedItem] = useState<FamiliarityData | UnresolvedData | TaskData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // === [데이터 1] 안건 숙지 현황 리스트 (미래에 예정된 회의) ===
+  // Toast 상태 (유지)
+  const [isToastVisible, setIsToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastSubMessage, setToastSubMessage] = useState("");
+
+  // === [데이터 1] 안건 숙지 현황 (유지) ===
   const familiarityList: FamiliarityData[] = [
     {
       id: 1,
       type: "familiarity",
-      meetingDate: "2026.04.25", // 미래 날짜로 수정
+      meetingDate: "2026.04.25",
       meetingTime: "10:00",
       meetingName: "차세대 ERP 보안 고도화 회의",
       projectName: "금융권 차세대 ERP UI 개선",
@@ -70,7 +103,7 @@ const Status: React.FC = () => {
     {
       id: 2,
       type: "familiarity",
-      meetingDate: "2026.04.28", // 미래 날짜로 수정
+      meetingDate: "2026.04.28",
       meetingTime: "14:00",
       meetingName: "AI 챗봇 인터페이스 최종 리뷰",
       projectName: "AI 미팅 에이전트 고도화",
@@ -83,17 +116,17 @@ const Status: React.FC = () => {
     }
   ];
 
-  // === [데이터 2] 미결정 안건 리스트 (과거에 발생한 안건) ===
+  // === [데이터 2] 미결정 안건 리스트 (유지) ===
   const unresolvedList: UnresolvedData[] = [
     {
       id: 102,
       type: "unresolved",
-      meetingDate: "2026.04.15", // 과거 날짜로 수정
+      meetingDate: "2026.04.15",
       meetingTime: "11:00",
       meetingName: "시스템 아키텍처 1차 검토",
       projectName: "금융권 차세대 ERP UI 개선",
       agendaTitle: "DB 이중화 방식 결정의 건",
-      scheduledMeeting: "차세대 ERP 보안 고도화 회의", // 위 예정회의와 연결
+      scheduledMeeting: "차세대 ERP 보안 고도화 회의",
       scheduledTime: "2026.04.25 10:00",
       deadline: "2026.04.23까지",
       status: "보류(기술검토)",
@@ -110,11 +143,58 @@ const Status: React.FC = () => {
     }
   ];
 
+  // === [데이터 3] 업무 이행 현황 (유지) ===
+  const taskList: TaskData[] = [
+    {
+      id: 201,
+      type: "task",
+      meetingName: "주간 정기 회의",
+      meetingDate: "2026.04.13",
+      projectName: "금융권 차세대 ERP UI 개선",
+      manager: "김철수 팀장",
+      completedCount: 3,
+      totalCount: 5,
+      status: "지연발생",
+      description: "주간 회의에서 결정된 UI 가이드라인 배포 및 권한 관리 설계 업무가 진행 중입니다.",
+      actionItems: [
+        { assignee: "박지민", content: "사용자 권한 관리 모듈 API 연동", status: "지연", hasResult: false },
+        { assignee: "이영희", content: "UI 가이드라인 최종본 배포", status: "완료", hasResult: true },
+        { assignee: "김철수", content: "기획안 검토 및 승인", status: "완료", hasResult: true },
+        { assignee: "최유리", content: "인프라 보안 설정 체크", status: "진행중", hasResult: false },
+        { assignee: "박지민", content: "데이터베이스 이중화 스크립트 작성", status: "완료", hasResult: true },
+      ],
+      aiSuggestion: "현재 '사용자 권한 관리 모듈 API 연동' 건이 3일째 지연되고 있습니다. 차기 회의에서는 개발 일정 재조정 혹은 리소스 추가 지원을 주요 안건으로 다룰 것을 제안합니다.",
+      color: "bg-[#FF9F43]"
+    },
+    {
+      id: 202,
+      type: "task",
+      meetingName: "모닝 스크럼",
+      meetingDate: "2026.04.17",
+      projectName: "AI 미팅 에이전트 고도화",
+      manager: "박민호 과장",
+      completedCount: 2,
+      totalCount: 4,
+      status: "진행중",
+      description: "스크럼 회의에서 파생된 데일리 업무들이 정상적으로 처리되고 있습니다.",
+      actionItems: [
+        { assignee: "박민호", content: "어제 피드백 사항 정리", status: "완료", hasResult: true },
+        { assignee: "이지연", content: "STT 정확도 샘플 테스트", status: "진행중", hasResult: false },
+        { assignee: "김동현", content: "모델 응답 속도 최적화", status: "진행중", hasResult: false },
+        { assignee: "박민호", content: "금일 업무 분장 공유", status: "완료", hasResult: true },
+      ],
+      aiSuggestion: "전체적으로 기한 내 업무가 진행되고 있으나, 응답 속도 최적화 건의 난이도가 높아 일정이 밀릴 가능성이 있습니다. 차기 회의에서 진행 상황을 상세 점검해보세요.",
+      color: "bg-[#FF6B6B]"
+    }
+  ];
+
   useEffect(() => {
     if (activeTab === "familiarity" && familiarityList.length > 0) {
       setSelectedItem(familiarityList[0]);
     } else if (activeTab === "unresolved" && unresolvedList.length > 0) {
       setSelectedItem(unresolvedList[0]);
+    } else if (activeTab === "task" && taskList.length > 0) {
+      setSelectedItem(taskList[0]);
     } else {
       setSelectedItem(null);
     }
@@ -128,10 +208,17 @@ const Status: React.FC = () => {
   return (
     <>
       <PageMeta title="진행 현황 | 회의바라" description="회의 진행 현황 및 안건 관리" />
+      
+      <Toast 
+        message={toastMessage} 
+        subMessage={toastSubMessage} 
+        isVisible={isToastVisible} 
+        onClose={() => setIsToastVisible(false)} 
+      />
 
       <div className="flex gap-6 h-[calc(100vh-140px)] bg-white overflow-hidden animate-fade-in relative">
         
-        {/* 좌측 패널 */}
+        {/* === [좌측 패널] === */}
         <div className="w-full lg:w-[480px] flex flex-col border border-gray-100 rounded-[32px] bg-white shadow-sm overflow-hidden">
           <div className="flex border-b border-gray-50 bg-gray-50/30">
             {["familiarity", "unresolved", "task"].map((id, idx) => {
@@ -157,24 +244,19 @@ const Status: React.FC = () => {
               const confirmed = item.participants.filter(p => p.status === "확인완료").length;
               const rate = Math.round((confirmed / total) * 100);
               return (
-                <div key={item.id} onClick={() => setSelectedItem(item)} className={`relative p-5 pl-7 rounded-2xl border cursor-pointer ${selectedItem?.id === item.id ? "border-[#91D148] bg-[#F4F9ED]/50" : "border-gray-100 bg-white"}`}>
+                <div key={item.id} onClick={() => setSelectedItem(item)} className={`relative p-5 pl-7 rounded-2xl border cursor-pointer overflow-hidden ${selectedItem?.id === item.id ? "border-[#91D148] bg-[#F4F9ED]/50" : "border-gray-100 bg-white"}`}>
                   <div className={`absolute left-0 top-0 bottom-0 w-2 ${item.color}`}></div>
                   <p className="text-[12px] text-gray-500 mb-1">{item.meetingDate} {item.meetingTime} | {item.meetingName}</p>
-                  <h4 className="text-[15px] font-bold text-gray-800">
-                    {item.projectName} | 숙지율: {rate}% ({confirmed}/{total}명)
-                  </h4>
+                  <h4 className="text-[15px] font-bold text-gray-800">{item.projectName} | 숙지율: {rate}% ({confirmed}/{total}명)</h4>
                 </div>
               );
             })}
 
             {activeTab === "unresolved" && unresolvedList.map((item) => (
-              <div key={item.id} onClick={() => setSelectedItem(item)} className={`relative p-5 pl-7 rounded-2xl border cursor-pointer ${selectedItem?.id === item.id ? "border-[#91D148] bg-[#F4F9ED]/50" : "border-gray-100 bg-white"}`}>
+              <div key={item.id} onClick={() => setSelectedItem(item)} className={`relative p-5 pl-7 rounded-2xl border cursor-pointer overflow-hidden ${selectedItem?.id === item.id ? "border-[#91D148] bg-[#F4F9ED]/50" : "border-gray-100 bg-white"}`}>
                 {item.color && <div className={`absolute left-0 top-0 bottom-0 w-2 ${item.color}`}></div>}
                 <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-bold text-gray-400">미결정발생일:</span>
-                    <span className="text-[11px] text-gray-500">{item.meetingDate}</span>
-                  </div>
+                  <p className="text-[11px] font-bold text-gray-400">미결정발생일: <span className="font-normal text-gray-500 ml-1">{item.meetingDate}</span></p>
                   <h4 className="text-[16px] font-black text-gray-800 my-1">{item.agendaTitle}</h4>
                   <div className="mt-1 space-y-0.5 text-[12px] text-gray-600">
                     <p><span className="font-bold text-gray-400 mr-1.5">프로젝트명:</span>{item.projectName}</p>
@@ -183,24 +265,45 @@ const Status: React.FC = () => {
                 </div>
               </div>
             ))}
+
+            {activeTab === "task" && taskList.map((item) => {
+              const rate = Math.round((item.completedCount / item.totalCount) * 100);
+              return (
+                <div key={item.id} onClick={() => setSelectedItem(item)} className={`relative p-5 pl-7 rounded-2xl border cursor-pointer overflow-hidden ${selectedItem?.id === item.id ? "border-[#91D148] bg-[#F4F9ED]/50" : "border-gray-100 bg-white"}`}>
+                  <div className={`absolute left-0 top-0 bottom-0 w-2 ${item.color || 'bg-gray-200'}`}></div>
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <p className="text-[12px] text-gray-500 font-bold">{item.meetingName}({item.meetingDate})</p>
+                      <h4 className="text-[14px] font-medium text-gray-400">{item.projectName}</h4>
+                      <p className="text-[14px] font-black text-gray-800">
+                        업무이행률: <span className="text-[#91D148]">{rate}%</span> ({item.completedCount}/{item.totalCount} 완료)
+                      </p>
+                    </div>
+                    <div className={`px-2.5 py-1 rounded-md text-[10px] font-black ${
+                      item.status === "지연발생" ? "bg-red-50 text-red-500 border border-red-100" : 
+                      item.status === "완료" ? "bg-gray-50 text-gray-400 border border-gray-100" : 
+                      "bg-blue-50 text-blue-500 border border-blue-100"
+                    }`}>
+                      {item.status === "지연발생" && "⚠️ "} {item.status}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* 우측 상세 패널 */}
+        {/* === [우측 상세 패널] === */}
         <div className="flex-1 border border-gray-100 rounded-[32px] bg-[#F4F9ED]/30 p-8 overflow-hidden flex flex-col items-center justify-center relative">
           {selectedItem ? (
-            <div className="w-full max-w-3xl max-h-full bg-white p-10 rounded-[40px] shadow-sm border border-gray-100 relative overflow-hidden flex flex-col">
+            <div className="w-full max-w-4xl max-h-full bg-white p-10 rounded-[40px] shadow-sm border border-gray-100 relative overflow-hidden flex flex-col no-scrollbar">
               <div className={`absolute left-0 top-10 w-2 h-20 ${selectedItem.color} rounded-r-lg`}></div>
               
-              <div className="flex-shrink-0 mb-8">
-                <h2 className="text-3xl font-black text-gray-900 leading-tight">
-                  {selectedItem.type === "familiarity" ? selectedItem.meetingName : selectedItem.agendaTitle}
-                </h2>
-              </div>
-
               <div className="flex-1 overflow-y-auto pr-2 no-scrollbar">
-                {selectedItem.type === "unresolved" ? (
-                  <div className="space-y-8">
+                {/* 1. 미결정 안건 상세 (유지) */}
+                {selectedItem.type === "unresolved" && (
+                  <div className="space-y-8 animate-fade-in">
+                    <h2 className="text-3xl font-black text-gray-900 leading-tight mb-8">{selectedItem.agendaTitle}</h2>
                     <table className="w-full text-sm">
                       <tbody className="divide-y divide-gray-50">
                         {[
@@ -222,9 +325,8 @@ const Status: React.FC = () => {
                       <h4 className="font-black text-sm mb-4 text-gray-400 uppercase tracking-widest">상세내용</h4>
                       <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{selectedItem.description}</p>
                     </div>
-
                     {selectedItem.references && (
-                      <div className="mt-6">
+                      <div className="mt-8">
                         <h4 className="font-black text-sm mb-4 text-gray-400 uppercase tracking-widest">관련참고사항</h4>
                         <div className="flex flex-wrap gap-3">
                           {selectedItem.references.map((ref, i) => (
@@ -236,13 +338,15 @@ const Status: React.FC = () => {
                       </div>
                     )}
                   </div>
-                ) : (
-                  <div className="space-y-6">
-                    <div className="flex justify-between items-end pb-4 border-b">
-                      <div>
-                        <p className="text-sm font-bold text-[#91D148]">{selectedItem.projectName}</p>
-                        <p className="text-sm text-gray-400">{selectedItem.meetingDate} {selectedItem.meetingTime} 진행</p>
-                      </div>
+                )}
+
+                {/* 2. 안건 숙지 현황 상세 (유지) */}
+                {selectedItem.type === "familiarity" && (
+                  <div className="space-y-6 animate-fade-in">
+                    <h2 className="text-3xl font-black text-gray-900 leading-tight mb-8">{selectedItem.meetingName}</h2>
+                    <div className="pb-4 border-b">
+                      <p className="text-sm font-bold text-[#91D148]">{selectedItem.projectName}</p>
+                      <p className="text-sm text-gray-400">{selectedItem.meetingDate} {selectedItem.meetingTime} 진행</p>
                     </div>
                     <table className="w-full text-left text-sm">
                       <thead className="text-gray-400 border-b">
@@ -260,30 +364,125 @@ const Status: React.FC = () => {
                     </table>
                   </div>
                 )}
+
+                {/* 3. 업무 이행 현황 상세 (유지) */}
+                {selectedItem.type === "task" && (
+                  <div className="space-y-8 animate-fade-in">
+                    <div className="flex justify-between items-start border-b border-gray-50 pb-8">
+                      <div>
+                        <h2 className="text-[32px] font-black text-gray-900 mb-2">{selectedItem.meetingName}</h2>
+                        <p className="text-lg text-gray-400 font-bold">{selectedItem.meetingDate} 진행</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-black text-[#91D148] mb-2">{selectedItem.projectName}</p>
+                        <span className="px-4 py-2 bg-[#F4F9ED] text-[#91D148] rounded-full text-xs font-black border border-[#91D148]/20">
+                          책임자: {selectedItem.manager}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-8 bg-[#F4F9ED]/50 rounded-[32px] border border-[#91D148]/10">
+                      <div className="flex justify-between items-center mb-5">
+                        <div className="flex items-center gap-3">
+                          <h4 className="font-black text-gray-700">종합 이행률</h4>
+                          {selectedItem.actionItems.some(ai => ai.status === "지연") && (
+                            <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black animate-pulse">
+                              지연 {selectedItem.actionItems.filter(ai => ai.status === "지연").length}건 발생
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-3xl font-black text-[#91D148]">
+                          {Math.round((selectedItem.completedCount / selectedItem.totalCount) * 100)}%
+                        </span>
+                      </div>
+                      <div className="w-full h-4 bg-white rounded-full overflow-hidden shadow-inner">
+                        <div 
+                          className={`h-full transition-all duration-1000 ${selectedItem.status === "지연발생" ? "bg-red-400" : "bg-[#91D148]"}`}
+                          style={{ width: `${(selectedItem.completedCount / selectedItem.totalCount) * 100}%` }}
+                        ></div>
+                      </div>
+                      <p className="mt-3 text-right text-xs font-bold text-gray-400">
+                        완료된 액션아이템 {selectedItem.completedCount} / 전체 {selectedItem.totalCount}
+                      </p>
+                    </div>
+
+                    <div>
+                      <h4 className="font-black text-sm mb-4 text-gray-400 uppercase tracking-widest">액션아이템 상세 리스트</h4>
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-gray-400 text-left border-b border-gray-50">
+                            <th className="pb-3 w-20">담당자</th>
+                            <th className="pb-3">업무내용</th>
+                            <th className="pb-3 w-24">현재 상태</th>
+                            <th className="pb-3 w-20 text-center">결과물</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {selectedItem.actionItems.map((ai, i) => (
+                            <tr key={i} className="hover:bg-gray-50/50 transition-colors">
+                              <td className="py-4 font-black text-gray-700">{ai.assignee}</td>
+                              <td className="py-4 text-gray-600 font-medium">{ai.content}</td>
+                              <td className="py-4 font-black">
+                                <span className={ai.status === "지연" ? "text-red-500" : ai.status === "완료" ? "text-gray-400" : "text-blue-500"}>
+                                  {ai.status === "지연" && "🚩 "}{ai.status}
+                                </span>
+                              </td>
+                              <td className="py-4 text-center">
+                                {ai.hasResult ? (
+                                  <span className="text-[#91D148] cursor-pointer inline-block">✅</span>
+                                ) : (
+                                  <span className="text-gray-200">⬜</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="p-8 bg-gray-50 rounded-[32px] border border-gray-100 relative mb-4">
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="text-lg">🐹</span>
+                        <h4 className="font-black text-sm text-gray-400 uppercase tracking-widest">바라의 안건 조정 제안</h4>
+                      </div>
+                      <p className="text-gray-700 leading-relaxed font-medium">
+                        {selectedItem.aiSuggestion}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {selectedItem.type === "familiarity" && (
-                <div className="flex-shrink-0 pt-8 mt-4 border-t border-gray-50">
+              {/* 하단 공통 버튼 영역 */}
+              <div className="flex-shrink-0 pt-8 mt-4 border-t border-gray-50">
+                {selectedItem.type === "familiarity" && (
                   <button onClick={() => setIsModalOpen(true)} className="w-full py-5 text-white font-black rounded-2xl shadow-xl transition-all bg-[#91D148] shadow-[#91D148]/20">
                     확인 촉구 알림 발송
                   </button>
-                </div>
-              )}
+                )}
+                {selectedItem.type === "task" && (
+                  <button 
+                    onClick={() => navigate("/meeting-register")} // ★ alert 대신 실제 페이지 이동 적용
+                    className="w-full py-5 text-white font-black rounded-2xl shadow-xl transition-all bg-[#91D148] shadow-[#91D148]/20 flex items-center justify-center gap-2"
+                  >
+                    차기안건조정하러가기 <span className="text-lg">→</span>
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <div className="text-center text-gray-400 animate-fade-in">
               <div className="text-6xl mb-6 opacity-30">📂</div>
               <p className="font-bold leading-relaxed text-gray-500">
-                {activeTab === "unresolved" 
-                  ? <>리스트에서 미결정안건을 선택하여<br/>상세내용을 확인해 보세요.</>
-                  : <>리스트에서 항목을 선택하여<br/>상세정보를 확인해 보세요.</>
-                }
+                {activeTab === "task" ? <>리스트에서 회의를 선택하여<br/>업무 이행의 상세내용을 확인해 보세요.</> : 
+                 activeTab === "unresolved" ? <>리스트에서 미결정안건을 선택하여<br/>상세내용을 확인해 보세요.</> : 
+                 <>리스트에서 항목을 선택하여<br/>상세정보를 확인해 보세요.</>}
               </p>
             </div>
           )}
         </div>
 
-        {/* 모달 로직 */}
+        {/* 모달 로직 (유지) */}
         {isModalOpen && selectedItem?.type === "familiarity" && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white rounded-[40px] p-10 w-[440px] shadow-2xl text-center">
@@ -294,7 +493,12 @@ const Status: React.FC = () => {
                 <button onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-gray-100 text-gray-600 font-bold rounded-2xl">닫기</button>
                 {unconfirmedUsers.length > 0 && (
                   <button 
-                    onClick={() => { alert("알림이 성공적으로 발송되었습니다!"); setIsModalOpen(false); }} 
+                    onClick={() => { 
+                      setToastMessage("알림이 성공적으로 발송되었습니다! 🐹"); 
+                      setToastSubMessage(`미확인 인원 ${unconfirmedUsers.length}명에게 푸시 알림을 보냈습니다.`);
+                      setIsToastVisible(true); 
+                      setIsModalOpen(false); 
+                    }} 
                     className="flex-1 py-4 bg-[#91D148] text-white font-bold rounded-2xl"
                   >
                     발송하기
@@ -304,6 +508,9 @@ const Status: React.FC = () => {
             </div>
           </div>
         )}
+        
+        {/* 바라존 포털 (유지) */}
+        {typeof document !== "undefined" && createPortal(<CapybaraZone />, document.body)}
       </div>
     </>
   );
