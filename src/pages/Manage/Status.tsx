@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // ★ 페이지 이동을 위한 useNavigate 추가
 import PageMeta from "../../components/common/PageMeta";
 import CapybaraZone from "../../components/common/CapybaraZone";
+import Toast from "../../components/common/Toast"; 
 import { createPortal } from "react-dom";
 
 // 1. 데이터 타입 정의
@@ -70,11 +72,17 @@ interface TaskData {
 }
 
 const Status: React.FC = () => {
+  const navigate = useNavigate(); // ★ navigate 함수 초기화
   const [activeTab, setActiveTab] = useState("familiarity");
   const [selectedItem, setSelectedItem] = useState<FamiliarityData | UnresolvedData | TaskData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // === [데이터 1] 안건 숙지 현황 (기존 유지) ===
+  // Toast 상태 (유지)
+  const [isToastVisible, setIsToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastSubMessage, setToastSubMessage] = useState("");
+
+  // === [데이터 1] 안건 숙지 현황 (유지) ===
   const familiarityList: FamiliarityData[] = [
     {
       id: 1,
@@ -108,7 +116,7 @@ const Status: React.FC = () => {
     }
   ];
 
-  // === [데이터 2] 미결정 안건 리스트 (기존 유지) ===
+  // === [데이터 2] 미결정 안건 리스트 (유지) ===
   const unresolvedList: UnresolvedData[] = [
     {
       id: 102,
@@ -135,7 +143,7 @@ const Status: React.FC = () => {
     }
   ];
 
-  // === [데이터 3] 업무 이행 현황 (기존 유지) ===
+  // === [데이터 3] 업무 이행 현황 (유지) ===
   const taskList: TaskData[] = [
     {
       id: 201,
@@ -200,6 +208,13 @@ const Status: React.FC = () => {
   return (
     <>
       <PageMeta title="진행 현황 | 회의바라" description="회의 진행 현황 및 안건 관리" />
+      
+      <Toast 
+        message={toastMessage} 
+        subMessage={toastSubMessage} 
+        isVisible={isToastVisible} 
+        onClose={() => setIsToastVisible(false)} 
+      />
 
       <div className="flex gap-6 h-[calc(100vh-140px)] bg-white overflow-hidden animate-fade-in relative">
         
@@ -350,7 +365,7 @@ const Status: React.FC = () => {
                   </div>
                 )}
 
-                {/* 3. 업무 이행 현황 상세 */}
+                {/* 3. 업무 이행 현황 상세 (유지) */}
                 {selectedItem.type === "task" && (
                   <div className="space-y-8 animate-fade-in">
                     <div className="flex justify-between items-start border-b border-gray-50 pb-8">
@@ -427,8 +442,8 @@ const Status: React.FC = () => {
 
                     <div className="p-8 bg-gray-50 rounded-[32px] border border-gray-100 relative mb-4">
                       <div className="flex items-center gap-2 mb-4">
-                        <span className="text-lg">🤖</span>
-                        <h4 className="font-black text-sm text-gray-400 uppercase tracking-widest">AI 안건 조정 제안</h4>
+                        <span className="text-lg">🐹</span>
+                        <h4 className="font-black text-sm text-gray-400 uppercase tracking-widest">바라의 안건 조정 제안</h4>
                       </div>
                       <p className="text-gray-700 leading-relaxed font-medium">
                         {selectedItem.aiSuggestion}
@@ -438,7 +453,7 @@ const Status: React.FC = () => {
                 )}
               </div>
 
-              {/* 하단 공통 버튼 영역: UI 통일 완료 */}
+              {/* 하단 공통 버튼 영역 */}
               <div className="flex-shrink-0 pt-8 mt-4 border-t border-gray-50">
                 {selectedItem.type === "familiarity" && (
                   <button onClick={() => setIsModalOpen(true)} className="w-full py-5 text-white font-black rounded-2xl shadow-xl transition-all bg-[#91D148] shadow-[#91D148]/20">
@@ -447,7 +462,7 @@ const Status: React.FC = () => {
                 )}
                 {selectedItem.type === "task" && (
                   <button 
-                    onClick={() => alert("회의 등록 화면으로 이동합니다.")}
+                    onClick={() => navigate("/meeting-register")} // ★ alert 대신 실제 페이지 이동 적용
                     className="w-full py-5 text-white font-black rounded-2xl shadow-xl transition-all bg-[#91D148] shadow-[#91D148]/20 flex items-center justify-center gap-2"
                   >
                     차기안건조정하러가기 <span className="text-lg">→</span>
@@ -477,12 +492,24 @@ const Status: React.FC = () => {
               <div className="flex gap-4">
                 <button onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-gray-100 text-gray-600 font-bold rounded-2xl">닫기</button>
                 {unconfirmedUsers.length > 0 && (
-                  <button onClick={() => { alert("알림이 성공적으로 발송되었습니다!"); setIsModalOpen(false); }} className="flex-1 py-4 bg-[#91D148] text-white font-bold rounded-2xl">발송하기</button>
+                  <button 
+                    onClick={() => { 
+                      setToastMessage("알림이 성공적으로 발송되었습니다! 🐹"); 
+                      setToastSubMessage(`미확인 인원 ${unconfirmedUsers.length}명에게 푸시 알림을 보냈습니다.`);
+                      setIsToastVisible(true); 
+                      setIsModalOpen(false); 
+                    }} 
+                    className="flex-1 py-4 bg-[#91D148] text-white font-bold rounded-2xl"
+                  >
+                    발송하기
+                  </button>
                 )}
               </div>
             </div>
           </div>
         )}
+        
+        {/* 바라존 포털 (유지) */}
         {typeof document !== "undefined" && createPortal(<CapybaraZone />, document.body)}
       </div>
     </>
