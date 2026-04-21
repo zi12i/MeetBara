@@ -21,7 +21,8 @@ const projectLabels = [
 ];
 
 // 스크롤 테스트를 위해 임시 데이터를 많이 넣었습니다!
-const upcomingMeetings = [
+export default function MeetingRegister() {
+const [meetingList, setMeetingList] = useState([
   { id: 1, title: "AI 에이전트 고도화 논의", date: "2026.05.14", time: "14:00~15:30", room: "소회의실 2호", attendees: "김 PM 외 2명", color: "#FF9F43" },
   { id: 2, title: "하반기 채용 계획 킥오프", date: "2026.06.02", time: "10:00~11:00", room: "대회의실", attendees: "박 팀장 외 3명", color: "#f59e0b" },
   { id: 3, title: "디자인 가이드라인 검토", date: "2026.05.20", time: "11:00~12:00", room: "온라인", attendees: "이 디자이너 외 1명", color: "#36A2EB" },
@@ -29,9 +30,15 @@ const upcomingMeetings = [
   { id: 5, title: "테스트 스크롤용 회의 2", date: "2026.05.22", time: "10:00~11:00", room: "온라인", attendees: "테스트", color: "#94a3b8" },
   { id: 6, title: "테스트 스크롤용 회의 3", date: "2026.05.23", time: "10:00~11:00", room: "온라인", attendees: "테스트", color: "#94a3b8" },
   { id: 7, title: "테스트 스크롤용 회의 4", date: "2026.05.24", time: "10:00~11:00", room: "온라인", attendees: "테스트", color: "#94a3b8" },
-];
-
-export default function MeetingRegister() {
+]);
+const formatDateToCard = (value: string) => {
+  return value.replaceAll("-", ".");
+};
+const formatAttendeesText = (list: string[]) => {
+  if (list.length === 0) return "참석자 없음";
+  if (list.length === 1) return list[0];
+  return `${list[0]} 외 ${list.length - 1}명`;
+};
   const [title, setTitle] = useState("");
   
   const [date, setDate] = useState("");
@@ -80,15 +87,92 @@ const openDatePicker = () => {
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [room, setRoom] = useState("");
-  const [selectedProject, setSelectedProject] = useState(projectLabels[0].id);
+  const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [isTemplateOpen, setIsTemplateOpen] = useState(false);
+  const [tempTemplate, setTempTemplate] = useState(""); 
+    const templateOptions = [
+  "회의록 템플릭",
+  "성과보고서 템플릿",
+  "미팅 템플릿",
+  "1:1 미팅",
+  "의사결정 회의",
+];
+  const [selectedProject, setSelectedProject] = useState("");
+  const [isProjectOpen, setIsProjectOpen] = useState(false);
+  const projectOptions = [
+  "AI미팅 에이전트 고도화",
+  "차세대 ERP UI 개선",
+  "회의바라 고도화",
+  "실시간 요약 기능",
+  "팀 위키 구축",
+];
   const [description, setDescription] = useState("");
-  
+  const [savedAgendas, setSavedAgendas] = useState<string[]>([]);
+  const [isAgendaAlertOpen, setIsAgendaAlertOpen] = useState(false);
   const [attendees, setAttendees] = useState<string[]>([]);
   const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
-
+  const [selectedSavedAgendaIndex, setSelectedSavedAgendaIndex] = useState<number | null>(null);
   const [isToastVisible, setIsToastVisible] = useState(false);
   const [isCreatingNew, setIsCreatingNew] = useState(true);
+  const [isPendingAgendaOpen, setIsPendingAgendaOpen] = useState(false);
+  const [selectedPendingAgendas, setSelectedPendingAgendas] = useState<any[]>([]);  
+  const [isSendConfirmOpen, setIsSendConfirmOpen] = useState(false);
+  const [isSendCompleteOpen, setIsSendCompleteOpen] = useState(false);
+  const [briefingCard, setBriefingCard] = useState<null | {
+  date: string;
+  time: string;
+  room: string;
+  project: string;
+  newAgendas: string[];
+  pendingAgendas: {
+    title: string;
+    createdDate: string;
+  }[];
+}>(null);
+const handleCreateBriefingCard = () => {
+  const formattedTime =
+    startTime && endTime ? `${startTime} ~ ${endTime}` : startTime || endTime || "";
 
+  const pendingAgendaItems = selectedPendingAgendas.map((agenda) => ({
+    title: agenda.title,
+    createdDate: agenda.createdDate,
+  }));
+
+  setBriefingCard({
+    date,
+    time: formattedTime,
+    room,
+    project: selectedProject,
+    newAgendas: savedAgendas,
+    pendingAgendas: pendingAgendaItems,
+  });
+};
+  const pendingAgendaList = [
+  {
+    id: 1,
+    createdDate: "2026.04.08",
+    title: "카드형 UI 레이아웃 최종확정",
+    projectName: "AI미팅 에이전트 고도화",
+    accentColor: "#FF7878",
+    borderColor: "#91D148",
+  },
+  {
+    id: 2,
+    createdDate: "2026.04.08",
+    title: "알림 센터 알림 통합 방식결정",
+    projectName: "AI미팅 에이전트 고도화",
+    accentColor: "#FF7878",
+    borderColor: "#91D148",
+  },
+  {
+    id: 3,
+    createdDate: "2026.04.13",
+    title: "고객사 요구사항 인터뷰 누락 확인",
+    projectName: "금융권 차세대 ERP UI 개선",
+    accentColor: "#F6A03D",
+    borderColor: "#91D148",
+  },
+];
   useEffect(() => {
     const event = new CustomEvent('UPDATE_BARA', { 
       detail: { scenarioId: "register", customMessage: "새로운 회의를 등록하시겠어요? 꼼꼼히 기록해서 관리해 드릴게요!" } 
@@ -104,24 +188,86 @@ const openDatePicker = () => {
   const handleRemoveMember = (nameToRemove: string) => {
     setAttendees(prev => prev.filter(name => name !== nameToRemove));
   };
-  
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title || !date || !startTime || !endTime) {
-      alert("필수 항목을 모두 입력해주세요.");
-      return;
+  const handleSelectPendingAgenda = (agenda: any) => {
+  setSelectedPendingAgendas((prev) => {
+    const exists = prev.find((item) => item.id === agenda.id);
+
+    // 이미 선택된 경우 → 제거 (토글)
+    if (exists) {
+      return prev.filter((item) => item.id !== agenda.id);
     }
-    setIsToastVisible(true);
-    
-    setTitle(""); setDate(""); setStartTime(""); setEndTime(""); setRoom(""); setAttendees([]); setDescription(""); setIsCreatingNew(true);
+
+    // 선택 안된 경우 → 추가
+    return [...prev, agenda];
+  });
+};
+  const handleAddAgenda = () => {
+  const trimmedText = description.trim();
+
+  if (trimmedText.length < 10) {
+    setIsAgendaAlertOpen(true);
+    return;
+  }
+
+  setSavedAgendas((prev) => [...prev, trimmedText]);
+  setDescription("");
+    setSelectedSavedAgendaIndex(null);
+};
+const handleCancelAgenda = () => {
+  if (selectedSavedAgendaIndex === null) return;
+
+  setSavedAgendas((prev) =>
+    prev.filter((_, index) => index !== selectedSavedAgendaIndex)
+  );
+
+  setSelectedSavedAgendaIndex(null);
+};
+  const handleSubmit = (e: React.FormEvent) => {
+  if (e) e.preventDefault();
+
+  if (!selectedProject || !date || !startTime || !endTime) {
+    alert("필수 항목을 모두 입력해주세요.");
+    return;
+  }
+
+  if (startTime >= endTime) {
+    alert("회의 종료 시간은 시작 시간보다 늦어야 합니다.");
+    return;
+  }
+
+  const newMeeting = {
+    id: Date.now(),
+    title: selectedProject, 
+    date: formatDateToCard(date),
+    time: `${startTime}~${endTime}`,
+    room: room.trim() || "장소 미정",
+    attendees: formatAttendeesText(attendees),
+    color: "#91D148",
   };
 
+  setMeetingList((prev) => [newMeeting, ...prev]);
+  setIsToastVisible(true);
+
+  setTitle("");
+  setDate("");
+  setStartTime("");
+  setEndTime("");
+  setRoom("");
+  setSelectedTemplate("");
+  setSelectedProject("");
+  setDescription("");
+  setSavedAgendas([]);
+  setAttendees([]);
+  setSelectedSavedAgendaIndex(null);
+  setSelectedPendingAgendas([]);
+  setBriefingCard(null);
+  setIsCreatingNew(true);
+};
   const handleSelectMeeting = (meeting: any) => {
     setIsCreatingNew(false);
     setTitle(meeting.title);
   };
-
   return (
     <>
       <PageMeta title="회의바라 - 회의 등록" description="새로운 회의 일정 등록 및 관리" />
@@ -145,7 +291,7 @@ const openDatePicker = () => {
                 <h2 className="text-[18px] font-black text-gray-900 flex items-center gap-2.5">
                   <span className="text-gray-800"><CalendarIcon /></span>
                   다가오는 회의
-                  <span className="bg-gray-100 text-gray-500 text-[12px] px-2.5 py-1 rounded-full ml-1">{upcomingMeetings.length}건</span>
+                  <span className="bg-gray-100 text-gray-500 text-[12px] px-2.5 py-1 rounded-full ml-1">{meetingList.length}건</span>
                 </h2>
               </div>
               
@@ -164,8 +310,8 @@ const openDatePicker = () => {
             
             {/* 💡 이 패널의 컨텐츠만 상하로 독립적으로 스크롤됩니다 (flex-1 overflow-y-auto) */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar bg-gray-50/30">
-              {upcomingMeetings.length > 0 ? (
-                upcomingMeetings.map((meeting) => (
+              {meetingList.length > 0 ? (
+               meetingList.map((meeting) => ( 
                   <div 
                     key={meeting.id}
                     onClick={() => handleSelectMeeting(meeting)}
@@ -217,21 +363,54 @@ const openDatePicker = () => {
                 <div className="space-y-6">
                   
                   <div>
-                    <label className="block text-[14px] font-bold text-gray-700 mb-2.5">연관 프로젝트 (색상 라벨)</label>
-                    <div className="flex flex-wrap gap-3">
-                      {projectLabels.map((proj) => (
-                        <button key={proj.id} type="button" onClick={() => setSelectedProject(proj.id)} className={`flex items-center gap-2 px-5 py-3 rounded-xl text-[14px] font-bold transition-all border-2 ${ selectedProject === proj.id ? "bg-white border-[#91D148] shadow-sm text-gray-900" : "bg-white border-transparent hover:border-gray-200 text-gray-500 shadow-sm" }`}>
-                          <span className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: proj.color }}></span>{proj.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+  <label className="block text-[14px] font-bold text-gray-700 mb-2.5">
+    프로젝트
+  </label>
+
+  <div className="relative">
+    <button
+      type="button"
+      onClick={() => setIsProjectOpen((prev) => !prev)}
+      className="w-full bg-white border border-gray-200 rounded-xl px-5 py-4 text-left text-[15px] font-bold text-gray-900 shadow-sm hover:border-[#91D148]/40 transition-all"
+    >
+      {selectedProject || "프로젝트를 선택해주십시오"}
+    </button>
+
+    {isProjectOpen && (
+      <div className="absolute left-0 right-0 top-[calc(100%+12px)] z-30 rounded-2xl border border-gray-200 bg-white shadow-lg overflow-hidden">
+        <div className="max-h-[260px] overflow-y-auto">
+          {projectOptions.map((project) => {
+            const isSelected = selectedProject === project;
+
+            return (
+              <button
+                key={project}
+                type="button"
+                onClick={() => {
+                  setSelectedProject(project);
+                  setIsProjectOpen(false);
+                }}
+                className={`w-full text-left px-5 py-4 border-b last:border-b-0 border-gray-100 transition-colors ${
+                  isSelected ? "bg-[#F8FBF2]" : "bg-white hover:bg-[#F8FBF2]"
+                }`}
+              >
+                <div className="text-[16px] font-black text-gray-900">
+                  {project}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    )}
+  </div>
+</div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
   <div>
     <label className="block text-[14px] font-bold text-gray-700 mb-2.5">
-      날짜 <span className="text-red-500">*</span>
+      회의 일시 <span className="text-red-500">*</span>
     </label>
 
     <div className="relative">
@@ -258,40 +437,95 @@ const openDatePicker = () => {
 
   <div>
     <label className="block text-[14px] font-bold text-gray-700 mb-2.5">
+      회의 시간 <span className="text-red-500">*</span>
+    </label>
+
+    <div className="w-full bg-white border border-gray-200 rounded-xl px-5 py-4 shadow-sm flex items-center gap-3">
+      <input
+        type="time"
+        value={startTime}
+        onChange={(e) => setStartTime(e.target.value)}
+        className="flex-1 bg-transparent text-[15px] font-bold text-gray-900 outline-none"
+      />
+      <span className="text-[15px] font-bold text-gray-500">~</span>
+      <input
+        type="time"
+        value={endTime}
+        onChange={(e) => setEndTime(e.target.value)}
+        className="flex-1 bg-transparent text-[15px] font-bold text-gray-900 outline-none"
+      />
+    </div>
+  </div>
+
+  <div>
+    <label className="block text-[14px] font-bold text-gray-700 mb-2.5">
       회의 장소
     </label>
     <input
       type="text"
       value={room}
       onChange={(e) => setRoom(e.target.value)}
-      placeholder="소회의실 1호 또는 화상 링크"
+      placeholder="장소를 입력하세요"
       className="w-full bg-white border border-gray-200 rounded-xl px-5 py-4 text-[15px] font-bold text-gray-900 focus:border-[#91D148] outline-none transition-all shadow-sm"
     />
   </div>
 
-  <div>
-    <label className="block text-[14px] font-bold text-gray-700 mb-2.5">
-      시작 시간 <span className="text-red-500">*</span>
-    </label>
-    <input
-      type="time"
-      value={startTime}
-      onChange={(e) => setStartTime(e.target.value)}
-      className="w-full bg-white border border-gray-200 rounded-xl px-5 py-4 text-[15px] font-bold text-gray-900 focus:border-[#91D148] outline-none transition-all shadow-sm"
-    />
-  </div>
+ <div>
+  <label className="block text-[14px] font-bold text-gray-700 mb-2.5">
+    템플릿 설정
+  </label>
 
-  <div>
-    <label className="block text-[14px] font-bold text-gray-700 mb-2.5">
-      종료 시간 <span className="text-red-500">*</span>
-    </label>
-    <input
-      type="time"
-      value={endTime}
-      onChange={(e) => setEndTime(e.target.value)}
-      className="w-full bg-white border border-gray-200 rounded-xl px-5 py-4 text-[15px] font-bold text-gray-900 focus:border-[#91D148] outline-none transition-all shadow-sm"
-    />
+  <div className="relative">
+    <button
+      type="button"
+      onClick={() => {
+        setIsTemplateOpen((prev) => !prev);
+        setTempTemplate(selectedTemplate);
+      }}
+      className="w-full bg-white border border-gray-200 rounded-xl px-5 py-4 text-left text-[15px] font-bold text-gray-900 focus:border-[#91D148] outline-none transition-all shadow-sm hover:border-[#91D148]/40"
+    >
+      {selectedTemplate || "템플릿명"}
+    </button>
+
+    {isTemplateOpen && (
+      <div className="absolute left-0 right-0 top-[calc(100%+12px)] z-30 rounded-2xl border border-gray-200 bg-white shadow-lg overflow-hidden">
+        <div className="max-h-[260px] overflow-y-auto">
+          {templateOptions.map((template) => {
+            const isSelected = tempTemplate === template;
+
+            return (
+              <button
+                key={template}
+                type="button"
+                onClick={() => setTempTemplate(template)}
+                className={`w-full text-left px-5 py-4 border-b last:border-b-0 border-gray-100 transition-colors ${
+                  isSelected ? "bg-[#F8FBF2]" : "bg-white hover:bg-[#F8FBF2]"
+                }`}
+              >
+                <div className="text-[16px] font-black text-gray-900">
+                  {template}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="p-4 bg-white border-t border-gray-100 flex justify-end">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedTemplate(tempTemplate);
+              setIsTemplateOpen(false);
+            }}
+            className="px-5 py-3 rounded-xl bg-[#F4F9ED] text-[#91D148] text-[14px] font-black border border-[#91D148]/20 hover:bg-[#EAF5DA] transition-all shadow-sm"
+          >
+            선택하기
+          </button>
+        </div>
+      </div>
+    )}
   </div>
+</div>
 </div>
 
                 <div className="space-y-6">
@@ -309,17 +543,250 @@ const openDatePicker = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[14px] font-bold text-gray-700 mb-2.5">회의 안건 및 메모 (선택)</label>
-                    {/* 데이터 길이에 상관없이 이 입력칸 아래로 스크롤 가능합니다. */}
-                    <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="회의 전 참석자들에게 공유할 안건이나 참고 사항을 자유롭게 적어주세요." className="w-full bg-white border border-gray-200 rounded-xl px-5 py-4 text-[15px] font-medium text-gray-800 focus:border-[#91D148] outline-none transition-all min-h-[300px] resize-y shadow-sm" />
-                  </div>
-                </div>
-              </form>
-            </div>
+  <div className="mb-6">
+  <div className="flex items-center justify-between mb-3">
+    <h3 className="text-[16px] font-black text-gray-800">미결정 안건</h3>
 
+    <button
+      type="button"
+      onClick={() => setIsPendingAgendaOpen((prev) => !prev)}
+      className="px-4 py-2 rounded-lg bg-[#F4F9ED] text-[#91D148] text-[13px] font-black border border-[#91D148]/20 hover:bg-[#EAF5DA] transition-all shadow-sm"
+    >
+      불러오기
+    </button>
+  </div>
+
+  {isPendingAgendaOpen && (
+    <div className="mb-4 rounded-2xl border border-gray-200 bg-white shadow-lg overflow-hidden">
+      <div className="max-h-[260px] overflow-y-auto">
+        {pendingAgendaList.map((agenda) => (
+          <button
+            key={agenda.id}
+            type="button"
+            onClick={() => handleSelectPendingAgenda(agenda)}
+            className="w-full text-left px-5 py-4 border-b last:border-b-0 border-gray-100 hover:bg-[#F8FBF2] transition-colors"
+          >
+            <div className="text-[13px] font-bold text-gray-400 mb-1">
+              미결정발생일: {agenda.createdDate}
+            </div>
+            <div className="text-[16px] font-black text-gray-900 mb-2">
+              {agenda.title}
+            </div>
+            <div className="text-[14px] font-bold text-gray-500">
+              프로젝트명: <span className="text-gray-700">{agenda.projectName}</span>
+            </div>
+          
+          </button>
+        ))}
+      </div>
+    </div>
+  )}
+
+  {selectedPendingAgendas.map((agenda) => (
+  <div
+    key={agenda.id}
+    className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white px-5 py-5 shadow-sm"
+  >
+    {/* 왼쪽 띠지 */}
+    <div className="absolute left-0 top-0 h-full w-[16px]">
+      <div
+      className="absolute left-0 top-0 h-full w-[10px]"
+      style={{ backgroundColor: agenda.accentColor }}
+/>
+      <div className="absolute left-[6px] top-0 h-full w-[20px] bg-white rounded-l-[20px]" />
+    </div>
+
+    <div className="pl-5">
+      <div className="text-[14px] font-black text-gray-400 mb-3">
+        미결정발생일: {agenda.createdDate}
+      </div>
+
+      <div className="text-[18px] font-bold text-gray-900 mb-4 leading-snug">
+        {agenda.title}
+      </div>
+
+      <div className="space-y-1">
+        <div className="text-[14px] font-semibold text-gray-400">
+          프로젝트명:{" "}
+          <span className="text-gray-700 font-medium">
+            {agenda.projectName}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+))}
+
+
+<div className="flex items-center justify-between mb-2.5">
+  <label className="block text-[14px] font-bold text-gray-700">
+    새 안건 입력 (10자 이상)
+  </label>
+
+  <div className="flex gap-2">
+    <button
+  type="button"
+  onClick={handleCancelAgenda}
+  disabled={selectedSavedAgendaIndex === null}
+  className={`px-4 py-2 rounded-lg text-[13px] font-bold border transition-all ${
+    selectedSavedAgendaIndex === null
+      ? "bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed"
+      : "bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200"
+  }`}
+>
+  취소하기
+</button>
+
+    <button
+      type="button"
+      onClick={handleAddAgenda}
+      className="px-4 py-2 rounded-lg bg-[#F4F9ED] text-[#91D148] text-[13px] font-black border border-[#91D148]/20 hover:bg-[#EAF5DA] transition-all shadow-sm"
+    >
+      추가하기
+    </button>
+  </div>
+</div>
+
+  <div className="space-y-3">
+    {savedAgendas.map((agenda, index) => {
+  const isSelected = selectedSavedAgendaIndex === index;
+
+  return (
+    <button
+      key={`${agenda}-${index}`}
+      type="button"
+      onClick={() => setSelectedSavedAgendaIndex(index)}
+      className={`w-full text-left rounded-2xl border px-5 py-4 shadow-sm transition-all ${
+        isSelected
+          ? "border-[#91D148] bg-[#F4F9ED]"
+          : "border-gray-200 bg-[#F9FBF6]"
+      }`}
+    >
+      <div className="text-[15px] font-bold text-gray-900 whitespace-pre-wrap">
+        {agenda}
+      </div>
+    </button>
+  );
+})}
+
+    <textarea
+      value={description}
+      onChange={(e) => setDescription(e.target.value)}
+      placeholder="회의 전 참석자들에게 공유할 안건이나 참고 사항을 자유롭게 적어주세요."
+      className="w-full bg-white border border-gray-200 rounded-xl px-5 py-4 text-[15px] font-medium text-gray-800 focus:border-[#91D148] outline-none transition-all min-h-[140px] resize-y shadow-sm"
+    />
+    <div className="flex justify-end mt-6">
+  <button
+    type="button"
+    onClick={handleCreateBriefingCard}
+    className="px-6 py-3 rounded-xl bg-[#F4F9ED] text-[#91D148] text-[15px] font-black border border-[#91D148]/20 hover:bg-[#EAF5DA] transition-all shadow-sm"
+  >
+    사전 브리핑 카드 생성하기
+  </button>
+</div>
+{briefingCard && (
+  <div className="mt-8">
+    <div className="rounded-[28px] border border-gray-200 bg-white shadow-sm overflow-hidden">
+      <div className="px-8 py-7 border-b border-gray-100 bg-[#F9FBF6]">
+        <h3 className="text-[20px] font-black text-[#111827]">사전 브리핑 카드</h3>
+      </div>
+
+      <div className="px-8 py-7 space-y-6">
+        <div className="text-[18px] font-bold text-[#344054] leading-relaxed">
+          <span className="font-black">{briefingCard.date || "YYYY-MM-DD"}</span>{" "}
+          <span className="font-black">{briefingCard.time || "HH:MM"}</span>{" "}
+          <span className="font-black">{briefingCard.room || "회의장소"}</span>에서{" "}
+          <span className="font-black">{briefingCard.project || "프로젝트명"}</span> 회의가 있습니다.
+        </div>
+
+        <div className="text-[17px] font-bold text-[#475467] leading-relaxed">
+          신규안건 {briefingCard.newAgendas.length}건, 미결정 안건 {briefingCard.pendingAgendas.length}건으로 회의가 진행될 예정입니다.
+        </div>
+
+        {briefingCard.newAgendas.length > 0 && (
+          <div className="space-y-3">
+            <div className="text-[16px] font-black text-[#111827] mb-2">
+              신규 안건
+            </div>
+            {briefingCard.newAgendas.map((agenda, index) => (
+              <div
+                key={`${agenda}-${index}`}
+                className="rounded-2xl border border-[#E5E7EB] bg-[#F9FBF6] px-5 py-4"
+              >
+                <div className="text-[15px] font-black text-[#111827]">
+                  {agenda}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {briefingCard.pendingAgendas.length > 0 && (
+          <div className="space-y-3">
+            <div className="text-[16px] font-black text-[#111827] mb-2">
+              미결정 안건
+            </div>
+            {briefingCard.pendingAgendas.map((agenda, index) => (
+              <div
+                key={`${agenda.title}-${index}`}
+                className="rounded-2xl border border-[#E5E7EB] bg-white px-5 py-4"
+              >
+                <div className="text-[13px] font-bold text-[#98A2B3] mb-2">
+                  미결정발생일: {agenda.createdDate}
+                </div>
+                <div className="text-[15px] font-black text-[#111827] leading-relaxed">
+                  {agenda.title}
+                </div>
+                <div className="mt-2 text-[14px] font-medium text-[#667085] leading-relaxed">
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+    
+  <div className="mt-4 w-full flex justify-end">
+  <div className="flex flex-wrap justify-end gap-3">
+    <button
+  type="button"
+  onClick={() => setIsSendConfirmOpen(true)}
+  className="px-5 py-3 rounded-xl bg-[#F4F9ED] text-[#91D148] text-[14px] font-black border border-[#91D148]/20 hover:bg-[#EAF5DA] transition-all shadow-sm"
+>
+  담당자 알림 전송
+</button>
+
+    <button
+      type="button"
+      className="px-5 py-3 rounded-xl bg-white text-[#344054] text-[14px] font-black border border-gray-200 hover:bg-gray-50 transition-all shadow-sm"
+    >
+      텍스트 복사하기
+    </button>
+
+    <button
+      type="button"
+      className="px-5 py-3 rounded-xl bg-white text-[#344054] text-[14px] font-black border border-gray-200 hover:bg-gray-50 transition-all shadow-sm"
+    >
+      PNG 복사하기
+    </button>
+  </div>
+</div>
+  </div>
+)}
+
+  </div>
+</div>
+</div>   
+                </div>
+              
+                  </form>
+                    </div>
             {/* 하단 고정 버튼 (절대 스크롤 안됨) */}
             <div className="p-6 md:p-8 bg-white border-t border-gray-100 flex justify-end shrink-0 z-10">
-              <button onClick={handleSubmit} className="bg-[#91D148] text-white px-12 py-4 rounded-xl font-black text-[17px] shadow-[0_4px_12px_rgba(145,209,72,0.3)] hover:bg-[#82bd41] transition-all flex items-center gap-2">
+              <button
+                type="submit"
+                className="bg-[#91D148] text-white px-12 py-4 rounded-xl font-black text-[17px] shadow-[0_4px_12px_rgba(145,209,72,0.3)] hover:bg-[#82bd41] transition-all flex items-center gap-2"
+              > 
                 {isCreatingNew ? '회의 예약하기' : '변경사항 저장'}
               </button>
             </div>
@@ -328,7 +795,98 @@ const openDatePicker = () => {
         </div>
       </div>
 
-      <MemberAddModal isOpen={isMemberModalOpen} onClose={() => setIsMemberModalOpen(false)} onAdd={handleAddMembers} />
+      {isAgendaAlertOpen && (
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30">
+    <div className="w-[90%] max-w-[420px] rounded-2xl bg-white shadow-xl border border-gray-200 px-6 py-7">
+      <div className="text-center">
+        <h3 className="text-[18px] font-black text-gray-900 mb-3">
+          안건 등록 안내
+        </h3>
+
+        <p className="text-[15px] leading-7 text-gray-600 whitespace-pre-line">
+          안건 등록을 위한 글자수가 부족합니다.
+          {"\n"}
+          10글자 이상으로 작성해주시기 바랍니다.
+        </p>
+      </div>
+
+      <div className="mt-6 flex justify-center">
+        <button
+          type="button"
+          onClick={() => setIsAgendaAlertOpen(false)}
+          className="min-w-[120px] px-6 py-3 rounded-xl bg-[#91D148] text-white font-black text-[15px] shadow-[0_4px_12px_rgba(145,209,72,0.28)] hover:bg-[#82bd41] transition-all"
+        >
+          확인
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+<MemberAddModal
+  isOpen={isMemberModalOpen}
+  onClose={() => setIsMemberModalOpen(false)}
+  onAdd={handleAddMembers}
+/>
+{isSendConfirmOpen && (
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30">
+    <div className="w-[90%] max-w-[420px] rounded-2xl bg-white shadow-xl border border-gray-200 px-6 py-7">
+      
+      <div className="text-center">
+        <h3 className="text-[18px] font-black text-gray-900 mb-3">
+          알림 전송
+        </h3>
+
+        <p className="text-[15px] leading-7 text-gray-600">
+          작성된 사전 브리핑 카드를 담당자에게 발송하시겠습니까?
+        </p>
+      </div>
+
+      <div className="mt-6 flex justify-center gap-3">
+        <button
+          onClick={() => setIsSendConfirmOpen(false)}
+          className="px-6 py-3 rounded-xl bg-gray-100 text-gray-500 font-bold"
+        >
+          아니오
+        </button>
+
+        <button
+          onClick={() => {
+            setIsSendConfirmOpen(false);
+            setIsSendCompleteOpen(true);
+          }}
+          className="px-6 py-3 rounded-xl bg-[#91D148] text-white font-black"
+        >
+          예
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+{isSendCompleteOpen && (
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30">
+    <div className="w-[90%] max-w-[420px] rounded-2xl bg-white shadow-xl border border-gray-200 px-6 py-7">
+      
+      <div className="text-center">
+        <h3 className="text-[18px] font-black text-gray-900 mb-3">
+          발송 완료
+        </h3>
+
+        <p className="text-[15px] leading-7 text-gray-600">
+          해당 회의의 카드 브리핑을 발송 완료하였습니다.
+        </p>
+      </div>
+
+      <div className="mt-6 flex justify-center">
+        <button
+          onClick={() => setIsSendCompleteOpen(false)}
+          className="min-w-[120px] px-6 py-3 rounded-xl bg-[#91D148] text-white font-black text-[15px]"
+        >
+          확인
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </>
   );
 }
