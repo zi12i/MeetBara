@@ -36,9 +36,8 @@ const TemplateSettings: React.FC = () => {
   const [toastMessage, setToastMessage] = useState("");
   const [toastSubMessage, setToastSubMessage] = useState<string | undefined>(undefined);
   
-  // 모달 상태 관리
+  // 모달 상태 관리 (삭제만 모달 사용)
   const [deleteModalId, setDeleteModalId] = useState<number | null>(null);
-  const [successModalType, setSuccessModalType] = useState<'create' | 'update' | 'default' | null>(null);
   
   // 템플릿 선택 및 기본 템플릿 상태 관리
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(3);
@@ -140,6 +139,20 @@ const TemplateSettings: React.FC = () => {
     window.dispatchEvent(event);
   }, []);
 
+  // 토스트 타이머
+  useEffect(() => {
+    if (isToastVisible) {
+      const timer = setTimeout(() => setIsToastVisible(false), 3000); 
+      return () => clearTimeout(timer);
+    }
+  }, [isToastVisible]);
+
+  const showToast = (message: string, subMessage?: string) => {
+    setToastMessage(message);
+    setToastSubMessage(subMessage || "");
+    setIsToastVisible(true);
+  };
+
   const handleFormChange = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -161,13 +174,14 @@ const TemplateSettings: React.FC = () => {
       if (selectedTemplateId === deleteModalId) setSelectedTemplateId(null); 
       if (defaultTemplateId === deleteModalId) setDefaultTemplateId(-1); 
       setDeleteModalId(null);
+      showToast("템플릿이 삭제되었습니다.");
     }
   };
 
   const saveTemplate = () => {
     if (selectedTemplateId) {
       setTemplates(prev => prev.map(t => t.id === selectedTemplateId ? { ...t, ...formData } : t));
-      setSuccessModalType('update');
+      showToast("정상적으로 템플릿이 수정되었습니다.");
     } else {
       const newId = Date.now();
       const newTemplate: Template = {
@@ -179,14 +193,14 @@ const TemplateSettings: React.FC = () => {
       
       setTemplates(prev => [...prev, newTemplate]);
       setSelectedTemplateId(newId);
-      setSuccessModalType('create');
+      showToast("정상적으로 템플릿이 등록되었습니다.");
     }
   };
 
   const handleSetDefault = () => {
     if (selectedTemplateId) {
       setDefaultTemplateId(selectedTemplateId);
-      setSuccessModalType('default');
+      showToast("기본 템플릿으로 지정되었습니다.");
     }
   };
 
@@ -210,7 +224,7 @@ const TemplateSettings: React.FC = () => {
       <Toast message={toastMessage} subMessage={toastSubMessage} isVisible={isToastVisible} onClose={() => setIsToastVisible(false)} />
       {createPortal(<CapybaraZone />, document.body)}
 
-      {/* 템플릿 삭제 모달 */}
+      {/* 템플릿 삭제 모달 (이건 유지) */}
       {deleteModalId && (
         <div className="fixed inset-0 z-[999] bg-gray-900/40 flex items-center justify-center p-4">
           <div className="bg-white w-[400px] rounded-xl py-12 px-8 shadow-2xl flex flex-col items-center relative">
@@ -222,7 +236,7 @@ const TemplateSettings: React.FC = () => {
             </p>
             <button 
               onClick={confirmDelete} 
-              className="px-12 py-3 rounded text-[14px] font-bold text-white bg-[#BDE396] hover:bg-[#a5cc7e] transition-colors"
+              className="px-12 py-3 rounded text-[14px] font-bold text-white bg-[#91D148] hover:bg-[#82bd41] transition-colors"
             >
               삭제하기
             </button>
@@ -231,28 +245,7 @@ const TemplateSettings: React.FC = () => {
         </div>
       )}
 
-      {/* 처리 완료 공통 모달 */}
-      {successModalType && (
-        <div className="fixed inset-0 z-[999] bg-gray-900/40 flex items-center justify-center p-4">
-          <div className="bg-white w-[400px] rounded-xl py-12 px-8 shadow-2xl flex flex-col items-center">
-            <p className="text-[16px] font-medium text-gray-800 text-center mb-8">
-              {successModalType === 'create' 
-                ? "정상적으로 템플릿이 등록되었습니다." 
-                : successModalType === 'update'
-                ? "정상적으로 템플릿이 수정되었습니다."
-                : "기본 템플릿으로 지정되었습니다."}
-            </p>
-            <button 
-              onClick={() => setSuccessModalType(null)} 
-              className="px-12 py-3 rounded text-[14px] font-bold text-white bg-[#BDE396] hover:bg-[#a5cc7e] transition-colors"
-            >
-              확인
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 최상단 래퍼: 전체 화면 높이(h-[calc(...)]) 고정 및 전체 스크롤 방지(overflow-hidden) */}
+      {/* 최상단 래퍼 */}
       <div className="p-4 md:p-8 max-w-[1600px] mx-auto h-[calc(100vh-120px)] flex flex-col overflow-hidden">
         
         <div className="flex gap-8 flex-1 min-h-0 h-full">
@@ -277,7 +270,7 @@ const TemplateSettings: React.FC = () => {
                         <span className="text-[13px] text-gray-600">{sub.label}</span>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input type="checkbox" className="sr-only peer" checked={sub.isEnabled} onChange={() => toggleSubAlarm(tool.id, sub.id)} />
-                          <div className={`w-8 h-4 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all ${sub.isEnabled ? 'bg-[#BDE396]' : 'bg-gray-200'}`}></div>
+                          <div className={`w-8 h-4 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all ${sub.isEnabled ? 'bg-[#91D148]' : 'bg-gray-200'}`}></div>
                         </label>
                       </div>
                     ))}
@@ -290,7 +283,7 @@ const TemplateSettings: React.FC = () => {
                 <span className="text-[13px] text-gray-600">라이트 모드 UI</span>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" className="sr-only peer" checked={!isDarkMode} onChange={() => setIsDarkMode(!isDarkMode)} />
-                  <div className={`w-8 h-4 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all ${!isDarkMode ? 'bg-[#BDE396]' : 'bg-gray-200'}`}></div>
+                  <div className={`w-8 h-4 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all ${!isDarkMode ? 'bg-[#91D148]' : 'bg-gray-200'}`}></div>
                 </label>
               </div>
 
@@ -305,7 +298,7 @@ const TemplateSettings: React.FC = () => {
               
               <button 
                 onClick={() => setSelectedTemplateId(null)}
-                className="w-full flex items-center justify-between px-3 py-3 border border-[#BDE396] text-[#BDE396] rounded mb-4 hover:bg-[#F9FCF5] transition-colors shrink-0"
+                className="w-full flex items-center justify-between px-3 py-3 border border-[#91D148] text-[#91D148] rounded mb-4 hover:bg-[#F9FCF5] transition-colors shrink-0"
               >
                 <span className="text-[13px] font-bold">사용자 지정 템플릿 추가하기</span>
                 <span className="text-lg leading-none">+</span>
@@ -317,7 +310,7 @@ const TemplateSettings: React.FC = () => {
                     key={template.id} 
                     onClick={() => setSelectedTemplateId(template.id)}
                     className={`flex items-center justify-between px-3 py-3 rounded border cursor-pointer ${
-                      selectedTemplateId === template.id ? "border-[#BDE396] bg-[#F9FCF5]" : "border-gray-200 hover:bg-gray-50"
+                      selectedTemplateId === template.id ? "border-[#91D148] bg-[#F9FCF5]" : "border-gray-200 hover:bg-gray-50"
                     }`}
                   >
                     <div className="flex items-center gap-2 overflow-hidden">
@@ -325,7 +318,7 @@ const TemplateSettings: React.FC = () => {
                         {template.title}
                       </span>
                       {template.id === defaultTemplateId && (
-                        <span className="shrink-0 text-[10px] font-bold text-[#BDE396] bg-white border border-[#BDE396] px-1.5 py-0.5 rounded">
+                        <span className="shrink-0 text-[10px] font-bold text-[#91D148] bg-white border border-[#91D148] px-1.5 py-0.5 rounded">
                           기본 템플릿
                         </span>
                       )}
@@ -333,7 +326,7 @@ const TemplateSettings: React.FC = () => {
                     
                     <div className="flex items-center gap-2 shrink-0">
                       {selectedTemplateId === template.id && (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#BDE396" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#91D148" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                       )}
                       <button onClick={(e) => { e.stopPropagation(); setDeleteModalId(template.id); }} className="text-gray-300 hover:text-red-400">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
@@ -366,7 +359,7 @@ const TemplateSettings: React.FC = () => {
                     value={formData.title}
                     onChange={(e) => handleFormChange('title', e.target.value)}
                     placeholder="해당 사용자 템플릿의 이름을 적어주세요"
-                    className="w-full text-[13px] border border-gray-200 rounded p-2.5 outline-none focus:border-[#BDE396]"
+                    className="w-full text-[13px] border border-gray-200 rounded p-2.5 outline-none focus:border-[#91D148]"
                   />
                 </div>
 
@@ -377,7 +370,7 @@ const TemplateSettings: React.FC = () => {
                     value={formData.description}
                     onChange={(e) => handleFormChange('description', e.target.value)}
                     placeholder="해당 사용자 템플릿의 설명을 적어주세요"
-                    className="w-full text-[13px] border border-gray-200 rounded p-2.5 outline-none focus:border-[#BDE396]"
+                    className="w-full text-[13px] border border-gray-200 rounded p-2.5 outline-none focus:border-[#91D148]"
                   />
                 </div>
 
@@ -388,18 +381,19 @@ const TemplateSettings: React.FC = () => {
                     value={formData.aiFormat}
                     onChange={(e) => handleFormChange('aiFormat', e.target.value)}
                     placeholder="회의 종료 후 출력되는 문서의 양식을 적어주세요 (서술형 줄글, KPT 회고 등)"
-                    className="w-full text-[13px] border border-gray-200 rounded p-2.5 outline-none focus:border-[#BDE396]"
+                    className="w-full text-[13px] border border-gray-200 rounded p-2.5 outline-none focus:border-[#91D148]"
                   />
                 </div>
 
+                {/* 액션 아이템 textarea로 변경 및 줄 수(rows=3) 지정, placeholder 변경 */}
                 <div>
                   <label className="block text-[13px] font-bold text-gray-700 mb-1">액션 아이템</label>
-                  <input 
-                    type="text" 
+                  <textarea 
                     value={formData.actionItem}
                     onChange={(e) => handleFormChange('actionItem', e.target.value)}
-                    placeholder="유관 부서 담당자 배정 및 우선 순위 설정 필요"
-                    className="w-full text-[13px] border border-gray-200 rounded p-2.5 outline-none focus:border-[#BDE396]"
+                    placeholder="즉시 실행 가능한 구체적인 작업 항목 (김철수 대리가 4월 25일까지(When) A 프로젝트 홍보 자료(What)를 수정하여 팀장님께 보고(Action)한다)"
+                    rows={3}
+                    className="w-full text-[13px] border border-gray-200 rounded p-2.5 outline-none focus:border-[#91D148] resize-none"
                   />
                 </div>
 
@@ -414,7 +408,8 @@ const TemplateSettings: React.FC = () => {
                           <button
                             key={level}
                             onClick={() => handleFormChange('sensitivity', level)}
-                            className={`w-[60px] py-1 text-[12px] rounded transition-colors ${isSelected ? 'bg-[#BDE396] text-white font-bold' : 'bg-white border border-gray-200 text-gray-600'}`}
+                            // 선택된 버튼 색상을 #91D148로 변경
+                            className={`w-[60px] py-1 text-[12px] rounded transition-colors ${isSelected ? 'bg-[#91D148] text-white font-bold' : 'bg-white border border-gray-200 text-gray-600'}`}
                           >
                             {labels[level as keyof typeof labels]}
                           </button>
@@ -425,7 +420,6 @@ const TemplateSettings: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 높이를 350px로 고정하여 화면을 줄여도 사라지거나 찌그러지지 않게 방어 */}
                 <div className="mt-8 flex flex-col shrink-0 h-[350px]">
                   <div className="mb-2 shrink-0">
                     <label className="block text-[14px] font-bold text-gray-800">템플릿 출력 예시</label>
@@ -434,7 +428,7 @@ const TemplateSettings: React.FC = () => {
                   <textarea 
                     value={formData.content}
                     onChange={(e) => handleFormChange('content', e.target.value)}
-                    className="w-full flex-1 border border-gray-200 rounded p-4 text-[13px] leading-relaxed outline-none focus:border-[#BDE396] resize-none"
+                    className="w-full flex-1 border border-gray-200 rounded p-4 text-[13px] leading-relaxed outline-none focus:border-[#91D148] resize-none"
                     placeholder="회의 양식을 입력하세요."
                   />
                 </div>
@@ -456,7 +450,8 @@ const TemplateSettings: React.FC = () => {
                 
                 <button 
                   onClick={saveTemplate}
-                  className="px-8 py-2 bg-[#BDE396] text-white font-bold text-[13px] rounded hover:bg-[#a5cc7e] shadow-sm transition-colors"
+                  // 버튼 색상 #91D148 적용
+                  className="px-8 py-2 bg-[#91D148] text-white font-bold text-[13px] rounded hover:bg-[#82bd41] shadow-sm transition-colors"
                 >
                   {selectedTemplateId ? "템플릿 수정하기" : "템플릿 등록하기"}
                 </button>
