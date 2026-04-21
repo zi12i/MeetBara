@@ -178,7 +178,14 @@ const TemplateSettings: React.FC = () => {
     }
   };
 
+  // 💡 템플릿 등록 및 수정 저장 로직
   const saveTemplate = () => {
+    // 템플릿 이름 공백 유효성 검사 추가
+    if (!formData.title.trim()) {
+      showToast("템플릿 이름을 작성해주세요.");
+      return;
+    }
+
     if (selectedTemplateId) {
       setTemplates(prev => prev.map(t => t.id === selectedTemplateId ? { ...t, ...formData } : t));
       showToast("정상적으로 템플릿이 수정되었습니다.");
@@ -189,7 +196,6 @@ const TemplateSettings: React.FC = () => {
         type: "custom",
         ...formData
       };
-      if(!newTemplate.title.trim()) newTemplate.title = "새 템플릿";
       
       setTemplates(prev => [...prev, newTemplate]);
       setSelectedTemplateId(newId);
@@ -224,7 +230,7 @@ const TemplateSettings: React.FC = () => {
       <Toast message={toastMessage} subMessage={toastSubMessage} isVisible={isToastVisible} onClose={() => setIsToastVisible(false)} />
       {createPortal(<CapybaraZone />, document.body)}
 
-      {/* 템플릿 삭제 모달 (이건 유지) */}
+      {/* 템플릿 삭제 모달 */}
       {deleteModalId && (
         <div className="fixed inset-0 z-[999] bg-gray-900/40 flex items-center justify-center p-4">
           <div className="bg-white w-[400px] rounded-xl py-12 px-8 shadow-2xl flex flex-col items-center relative">
@@ -385,7 +391,6 @@ const TemplateSettings: React.FC = () => {
                   />
                 </div>
 
-                {/* 액션 아이템 textarea로 변경 및 줄 수(rows=3) 지정, placeholder 변경 */}
                 <div>
                   <label className="block text-[13px] font-bold text-gray-700 mb-1">액션 아이템</label>
                   <textarea 
@@ -408,7 +413,6 @@ const TemplateSettings: React.FC = () => {
                           <button
                             key={level}
                             onClick={() => handleFormChange('sensitivity', level)}
-                            // 선택된 버튼 색상을 #91D148로 변경
                             className={`w-[60px] py-1 text-[12px] rounded transition-colors ${isSelected ? 'bg-[#91D148] text-white font-bold' : 'bg-white border border-gray-200 text-gray-600'}`}
                           >
                             {labels[level as keyof typeof labels]}
@@ -450,7 +454,6 @@ const TemplateSettings: React.FC = () => {
                 
                 <button 
                   onClick={saveTemplate}
-                  // 버튼 색상 #91D148 적용
                   className="px-8 py-2 bg-[#91D148] text-white font-bold text-[13px] rounded hover:bg-[#82bd41] shadow-sm transition-colors"
                 >
                   {selectedTemplateId ? "템플릿 수정하기" : "템플릿 등록하기"}
