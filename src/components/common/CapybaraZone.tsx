@@ -65,7 +65,7 @@ const CapybaraZone: React.FC = () => {
       setCurrentScenario(BARA_SCENARIOS.find(s => s.id === "meeting_normal") || BARA_SCENARIOS[1]);
     }
   }, [pathname, isLiveMeeting, isQuickMeeting]);
-  
+
   useEffect(() => {
     const handleBaraUpdate = (event: any) => {
       const { scenarioId, progress, status, customMessage, timeLeft } = event.detail; 
