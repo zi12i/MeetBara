@@ -30,16 +30,13 @@ const topFixedItems: NavItem[] = [
 const navItems: NavItem[] = [
   {
     icon: <DocumentIcon />,
-    name: "회의 진행",
-    subItems: [
-      { 
-        name: "실시간 회의 화면", 
-        // 정석 경로인 /meeting/:id/live 형식에 맞춰 임시 ID '1' 부여
-        path: "/meeting/1/live", 
-        pro: false 
-      }, 
-      { name: "회의 요약본", path: "/meeting-records", pro: false },
-    ],
+    name: "워크 스페이스",
+    path: "/workspace",
+  },  
+  {
+    icon: <DocumentIcon />,
+    name: "프로젝트 관리",
+    path: "/project-management",
   },
   {
     icon: <ServerIcon />,
@@ -48,8 +45,6 @@ const navItems: NavItem[] = [
       { name: "진행 현황", path: "/status", pro: false },
       { name: "히스토리", path: "/history", pro: false },
       { name: "회의 일정 관리", path: "/calendar", pro: false },
-      { name: "회의 개설", path: "/room-reservation", pro: false },
-      { name: "지식 관리", path: "/wiki", pro: false },
     ],
   },
   {
@@ -58,9 +53,6 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "내 정보 / 계정 연동", path: "/profile", pro: false },
       { name: "일반 / 템플릿 설정", path: "/template-settings", pro: false },
-      { name: "팀 위키", path: "/wiki", pro: false },
-      { name: "워크스페이스", path: "/workspace", pro: false },
-      { name: "액션플랜", path: "/action-plan", pro: false },
     ],
   },
   {
@@ -188,80 +180,101 @@ const AppSidebar: React.FC = () => {
     </ul>
   );
 
-  const renderAccordionItems = (items: NavItem[]) => (
-    <ul className="flex flex-col">
-      {items.map((nav, index) => {
-        const isMenuOpen = openSubmenu?.type === "main" && openSubmenu?.index === index;
-        return (
-          <li
-            key={nav.name}
-            onMouseEnter={(e) => handleMouseEnter(e, index, nav)}
-            onMouseLeave={handleMouseLeave}
-            className="flex flex-col"
-            style={{
-              backgroundColor: isMenuOpen && (isExpanded || isMobileOpen) ? "#EEF5E5" : "transparent",
-              borderLeft: isMenuOpen && (isExpanded || isMobileOpen) ? "4px solid #91D148" : "4px solid transparent"
-            }}
-          >
-            <button
-              onClick={() => {
-                if (!isExpanded && !isMobileOpen) {
-                  toggleSidebar();
-                }
-                handleSubmenuToggle(index);
-              }}
-              // 👉 화살표 끝 정렬을 위해 justify-between 추가
-              className={`flex items-center justify-between w-full py-3 cursor-pointer transition-colors ${
-                isMenuOpen ? "text-gray-900" : "text-gray-600 hover:bg-gray-50"
+const renderAccordionItems = (items: NavItem[]) => (
+  <ul className="flex flex-col">
+    {items.map((nav, index) => {
+      const hasSubItems = !!nav.subItems && nav.subItems.length > 0;
+      const isMenuOpen = openSubmenu?.type === "main" && openSubmenu?.index === index;
+      
+      // 직접 이동 메뉴인 경우 활성화 여부 체크
+      const active = nav.path ? isActive(nav.path) : false;
+
+      // 공통 아이템 내부 구성 요소 (아이콘 + 텍스트)
+      const ItemContent = (
+        <div className="flex items-center">
+          <span className={`flex-shrink-0 ${isMenuOpen || active ? "text-[#91d148]" : "text-gray-400 group-hover:text-gray-600"}`}>
+            {nav.icon}
+          </span>
+          {(isExpanded || isMobileOpen) && (
+            <span className={`ml-3 text-[15px] whitespace-nowrap ${active ? "font-bold text-gray-900" : ""}`}>
+              {nav.name}
+            </span>
+          )}
+        </div>
+      );
+
+      return (
+        <li
+          key={nav.name}
+          // 💡 하위 메뉴가 있을 때만 호버 팝업 트리거
+          onMouseEnter={(e) => hasSubItems && handleMouseEnter(e, index, nav)}
+          onMouseLeave={handleMouseLeave}
+          className="flex flex-col"
+          style={{
+            backgroundColor: (isMenuOpen || active) && (isExpanded || isMobileOpen) ? "#EEF5E5" : "transparent",
+            borderLeft: (isMenuOpen || active) && (isExpanded || isMobileOpen) ? "4px solid #91D148" : "4px solid transparent"
+          }}
+        >
+          {/* 💡 분기 처리 1: 하위 메뉴가 있는 경우 (버튼/토글) */}
+          {hasSubItems ? (
+            <>
+              <button
+                onClick={() => {
+                  if (!isExpanded && !isMobileOpen) toggleSidebar();
+                  handleSubmenuToggle(index);
+                }}
+                className={`flex items-center justify-between w-full py-3 cursor-pointer transition-colors ${
+                  isMenuOpen ? "text-gray-900" : "text-gray-600 hover:bg-gray-50"
+                } ${isExpanded || isMobileOpen ? "px-5" : "justify-center"}`}
+              >
+                {ItemContent}
+                {(isExpanded || isMobileOpen) && (
+                  <ChevronDownIcon
+                    className={`w-5 h-5 transition-transform duration-200 ${isMenuOpen ? "rotate-180 text-gray-500" : "text-gray-400"}`}
+                  />
+                )}
+              </button>
+
+              {/* 하위 메뉴 리스트 (아코디언) */}
+              {(isExpanded || isMobileOpen) && (
+                <div
+                  ref={(el) => { subMenuRefs.current[`main-${index}`] = el; }}
+                  className="overflow-hidden transition-all duration-300 px-5"
+                  style={{ height: isMenuOpen ? `${subMenuHeight[`main-${index}`]}px` : "0px" }}
+                >
+                  <ul className="mt-1 pb-3 space-y-2 ml-7">
+                    {nav.subItems!.map((subItem) => (
+                      <li key={subItem.name}>
+                        <Link
+                          to={subItem.path}
+                          className={`block text-[14px] transition-colors ${
+                            isActive(subItem.path) ? "text-[#91d148] font-black" : "text-gray-600 hover:text-gray-900"
+                          }`}
+                        >
+                          • {subItem.name}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          ) : (
+            /* 💡 분기 처리 2: 하위 메뉴가 없는 경우 (Link/직접 이동) */
+            <Link
+              to={nav.path || "#"}
+              className={`flex items-center w-full py-3 transition-colors ${
+                active ? "text-gray-900" : "text-gray-600 hover:bg-gray-50"
               } ${isExpanded || isMobileOpen ? "px-5" : "justify-center"}`}
             >
-              {/* 아이콘과 텍스트를 하나로 묶어서 좌측 정렬 */}
-              <div className="flex items-center">
-                <span className={`flex-shrink-0 ${isMenuOpen ? "text-[#91d148]" : "text-gray-400 group-hover:text-gray-600"}`}>
-                  {nav.icon}
-                </span>
-                {(isExpanded || isMobileOpen) && (
-                  <span className={`ml-3 text-[15px] whitespace-nowrap ${nav.name === "관리자 설정 메뉴" ? "text-[#91d148] font-medium" : ""}`}>
-                    {nav.name}
-                  </span>
-                )}
-              </div>
-
-              {/* 👉 화살표는 알아서 우측 끝으로 밀려납니다 */}
-              {(isExpanded || isMobileOpen) && (
-                <ChevronDownIcon
-                  className={`w-5 h-5 transition-transform duration-200 ${isMenuOpen ? "rotate-180 text-gray-500" : "text-gray-400"}`}
-                />
-              )}
-            </button>
-
-            {(isExpanded || isMobileOpen) && nav.subItems && (
-              <div
-                ref={(el) => { subMenuRefs.current[`main-${index}`] = el; }}
-                className="overflow-hidden transition-all duration-300 px-5"
-                style={{ height: isMenuOpen ? `${subMenuHeight[`main-${index}`]}px` : "0px" }}
-              >
-                <ul className="mt-1 pb-3 space-y-2 ml-7">
-                  {nav.subItems.map((subItem) => (
-                    <li key={subItem.name}>
-                      <Link
-                        to={subItem.path}
-                        className={`block text-[14px] transition-colors ${
-                          isActive(subItem.path) ? "text-[#91d148] font-medium" : "text-gray-600 hover:text-gray-900"
-                        }`}
-                      >
-                        • {subItem.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </li>
-        );
-      })}
-    </ul>
-  );
+              {ItemContent}
+            </Link>
+          )}
+        </li>
+      );
+    })}
+  </ul>
+);
 
   return (
     <>
