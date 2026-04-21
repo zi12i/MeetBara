@@ -26,6 +26,7 @@ import LiveMeeting from "./pages/Meetings/LiveMeeting";
 import QuickMeeting from "./pages/Meetings/QuickMeeting"; 
 import MeetingResult from "./pages/Meetings/MeetingResult";
 import Status from "./pages/Manage/Status";
+import MeetingHistory from "./pages/Meetings/history";
 
 export default function App() {
   return (
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="/meeting-register" element={<MeetingRegister />} />
             {/* Meeting Management */}
             <Route path="/status" element={<Status />} />
+            <Route path="/history" element={<MeetingHistory />} />
             {/* Others Page */}
             <Route path="/profile" element={<UserProfiles />} />
             <Route path="/calendar" element={<Calendar />} />
