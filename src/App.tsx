@@ -27,6 +27,7 @@ import QuickMeeting from "./pages/Meetings/QuickMeeting";
 import MeetingResult from "./pages/Meetings/MeetingResult";
 import Status from "./pages/Manage/Status";
 import ProjectManement from "./pages/Manage/ProjectManagement";
+import MeetingHistory from "./pages/Meetings/history";
 
 export default function App() {
   return (
@@ -42,6 +43,8 @@ export default function App() {
             {/* Meeting Management */}
             <Route path="/status" element={<Status />} />
             <Route path="/project-management" element={<ProjectManement />} />
+            <Route path="/history" element={<MeetingHistory />} />
+
             {/* Others Page */}
             <Route path="/profile" element={<UserProfiles />} />
             <Route path="/calendar" element={<Calendar />} />
