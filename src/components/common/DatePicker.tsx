@@ -119,7 +119,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
         <div 
           ref={dropdownRef}
           style={dropdownStyle}
-          className="p-4 bg-white border border-gray-100 rounded-2xl shadow-xl z-[9999] animate-fade-in"
+          className="p-4 bg-white border border-gray-100 rounded-2xl shadow-xl z-[19999] animate-fade-in"
         >
           <div className="flex justify-between items-center mb-4">
             <button onClick={prevMonth} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-50 hover:text-gray-700 transition-colors">
@@ -182,7 +182,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
 
       {/* 💡 과거 날짜 클릭 시 경고 커스텀 모달 */}
       {errorModalOpen && createPortal(
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-gray-900/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[20000] flex items-center justify-center bg-gray-900/40 backdrop-blur-sm p-4">
           <div className="bg-white p-8 rounded-3xl shadow-2xl w-[320px] text-center animate-zoom-in">
             <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-5 border-4 border-white shadow-sm">
               <AlertCircleIcon />
