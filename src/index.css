@@ -790,3 +790,100 @@ span.flatpickr-weekday,
 .simplebar-scrollbar.simplebar-visible:before {
   @apply opacity-100;
 }
+/* flatpickr 전체 박스 */
+.flatpickr-calendar {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 20px !important;
+  box-shadow: 0 12px 30px rgba(17, 24, 39, 0.12) !important;
+  font-family: inherit !important;
+}
+
+/* 상단 월 영역 */
+.flatpickr-months {
+  padding-top: 8px;
+}
+
+.flatpickr-month {
+  background: #f8fbf2 !important;
+}
+
+.flatpickr-current-month {
+  color: #111827 !important;
+  font-weight: 800 !important;
+  font-size: 16px !important;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-current-month input.cur-year {
+  color: #111827 !important;
+  font-weight: 800 !important;
+}
+
+/* 좌우 화살표 */
+.flatpickr-prev-month,
+.flatpickr-next-month {
+  fill: #91d148 !important;
+  color: #91d148 !important;
+}
+
+.flatpickr-prev-month:hover svg,
+.flatpickr-next-month:hover svg {
+  fill: #7fc53a !important;
+}
+
+/* 요일 */
+.flatpickr-weekdays {
+  background: #f8fbf2 !important;
+}
+
+span.flatpickr-weekday {
+  color: #6b7280 !important;
+  font-weight: 800 !important;
+}
+
+/* 날짜 기본 */
+.flatpickr-day {
+  border-radius: 10px !important;
+  color: #111827 !important;
+  font-weight: 700;
+}
+
+/* hover */
+.flatpickr-day:hover {
+  background: #eaf5da !important;
+  border-color: #eaf5da !important;
+}
+
+/* 선택 날짜 */
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange,
+.flatpickr-day.selected:hover,
+.flatpickr-day.startRange:hover,
+.flatpickr-day.endRange:hover {
+  background: #91d148 !important;
+  border-color: #91d148 !important;
+  color: #ffffff !important;
+}
+
+/* 오늘 날짜 */
+.flatpickr-day.today {
+  border-color: #91d148 !important;
+}
+
+.flatpickr-day.today:hover {
+  background: #eaf5da !important;
+  border-color: #91d148 !important;
+  color: #111827 !important;
+}
+
+/* 비활성 날짜 */
+.flatpickr-day.prevMonthDay,
+.flatpickr-day.nextMonthDay {
+  color: #c4c7cf !important;
+}
+
+/* 오늘 버튼/하단 버튼 톤 */
+.flatpickr-calendar .flatpickr-innerContainer {
+  background: #ffffff !important;
+}
