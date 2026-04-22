@@ -19,6 +19,7 @@ const routeTitles: Record<string, string> = {
   "/meeting-start": "회의 시작",
   "/meeting-register": "회의 등록",
   "/project-management": "프로젝트 관리",
+  "/workspace": "워크 스페이스",
   // 필요한 정적 경로를 여기에 계속 추가하세요!
 };
 
