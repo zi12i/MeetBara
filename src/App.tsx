@@ -28,6 +28,7 @@ import MeetingResult from "./pages/Meetings/MeetingResult";
 import Status from "./pages/Manage/Status";
 import ProjectManement from "./pages/Manage/ProjectManagement";
 import MeetingHistory from "./pages/Meetings/history";
+import MyWorkspace from "./pages/Workspace/MyWorkSpace";
 
 export default function App() {
   return (
@@ -49,6 +50,7 @@ export default function App() {
             <Route path="/profile" element={<UserProfiles />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/blank" element={<Blank />} />
+            <Route path="/workspace" element={<MyWorkspace />} />
 
             {/* Settings */}
             <Route path="/profile" element={<UserProfiles />} />
