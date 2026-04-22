@@ -5,6 +5,7 @@ import MemberAddModal from "../../components/meetings/MemberAddModal";
 import Toast from "../../components/common/Toast";
 import { createPortal } from "react-dom";
 import DatePicker from "../../components/common/DatePicker"; 
+import MeetingFormModal from "../../components/meetings/MeetingFormModal";
 
 // --- SVG 아이콘 컴포넌트 ---
 const CalendarIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>;
@@ -32,7 +33,25 @@ const upcomingMeetings = [
 ];
 
 export default function MeetingRegister() {
-const [meetingList, setMeetingList] = useState([
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const resetForm = () => {
+  setTitle("");
+  setDate("");
+  setStartTime("");
+  setEndTime("");
+  setRoom("");
+  setSelectedTemplate("");
+  setSelectedProject("");
+  setDescription("");
+  setSavedAgendas([]);
+  setAttendees([]);
+  setSelectedSavedAgendaIndex(null);
+  setSelectedPendingAgendas([]);
+  setBriefingCard(null);
+  setSelectedMeetingId(null);
+  setIsCreatingNew(true);
+};
+  const [meetingList, setMeetingList] = useState([
   {
     id: 1,
     title: "메인 서비스 UI 고도화",
@@ -154,7 +173,7 @@ const formatAttendeesText = (list: string[]) => {
       setIsCreatingNew(false);
 
       setTitle(meeting.title);
-      setSelectedProject(meeting.title);
+      setSelectedProject(meeting.projectName || "");
       setDate(meeting.date.replaceAll(".", "-"));
 
       const [start, end] = meeting.time.split("~");
@@ -168,6 +187,8 @@ const formatAttendeesText = (list: string[]) => {
 
       setAttendees(meeting.attendeesList || []);
       setSelectedTemplate(meeting.templateName || "");
+
+      setIsFormModalOpen(true);
       };
   const handleMeetingClick = (meeting: {
   id: number;
@@ -179,8 +200,8 @@ const formatAttendeesText = (list: string[]) => {
   color: string;
 }) => {
   setSelectedMeetingId(meeting.id);
-
-  setSelectedProject(meeting.title);
+  setTitle(meeting.title);
+  setSelectedProject(meeting.projectName || "");
   setDate(meeting.date.replaceAll(".", "-"));
 
   const [start, end] = meeting.time.split("~");
@@ -308,7 +329,7 @@ const handleCancelAgenda = () => {
   const handleSubmit = (e: React.FormEvent) => {
   if (e) e.preventDefault();
 
-  if (!selectedProject || !date || !startTime || !endTime) {
+  if (!title.trim() || !date || !startTime || !endTime) {
   setIsRequiredModalOpen(true);
   return;
 }
@@ -322,7 +343,8 @@ const handleCancelAgenda = () => {
   );
   const newMeeting = {
     id: Date.now(),
-    title: selectedProject, 
+    title: title.trim(),
+    projectName: selectedProject,
     date: formatDateToCard(date),
     time: `${startTime}~${endTime}`,
     room: room.trim() || "장소 미정",
@@ -414,9 +436,9 @@ const handleCancelAgenda = () => {
               
               <button 
                 onClick={() => {
-                  setIsCreatingNew(true);
-                  setTitle(""); setDate(""); setStartTime(""); setEndTime(""); setRoom(""); setAttendees([]); setDescription("");
-                }}
+                resetForm();
+                setIsFormModalOpen(true);
+              }}
                 className={`w-full mt-4 py-3.5 rounded-xl font-black text-[14px] flex items-center justify-center gap-2 transition-all border-2 ${
                   isCreatingNew ? "bg-[#F4F9ED] text-[#91D148] border-[#91D148] shadow-sm" : "bg-white text-gray-500 border-gray-200 hover:border-[#91D148]/50"
                 }`}
@@ -992,7 +1014,8 @@ const handleCancelAgenda = () => {
 
       {isAgendaAlertOpen && (
   <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30">
-    <div className="w-[90%] max-w-[420px] rounded-2xl bg-white shadow-xl border border-gray-200 px-6 py-7">
+    <div className="w-[90%] max-w-[420px] rounded-2xl b
+    g-white shadow-xl border border-gray-200 px-6 py-7">
       <div className="text-center">
         <h3 className="text-[18px] font-black text-gray-900 mb-3">
           안건 등록 안내
@@ -1169,8 +1192,8 @@ const handleCancelAgenda = () => {
       </h3>
 
       <p className="text-[15px] text-gray-500 leading-relaxed mb-8">
-       프로젝트, 날짜, 시작 시간, 종료 시간은 <br />
-      반드시 입력해야 합니다.      </p>
+       회의제목, 날짜, 시작 시간, 종료 시간은 <br />
+      필수 입력 항목입니다.      </p>
 
       <button
         type="button"
