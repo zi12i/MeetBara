@@ -1,19 +1,8 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import PageMeta from "../../components/common/PageMeta";
 import CapybaraZone from "../../components/common/CapybaraZone";
 import { createPortal } from "react-dom";
-
-// =============================================
-// 달력 아이콘
-// =============================================
-const CalendarIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-    <line x1="16" y1="2" x2="16" y2="6"></line>
-    <line x1="8" y1="2" x2="8" y2="6"></line>
-    <line x1="3" y1="10" x2="21" y2="10"></line>
-  </svg>
-);
+import DatePicker from "../../components/common/DatePicker"; // 💡 커스텀 달력 컴포넌트 임포트
 
 // =============================================
 // 타입 정의
@@ -684,9 +673,6 @@ const MeetingHistory: React.FC = () => {
   const [agenda, setAgenda] = useState<string>("");
   const [keyword, setKeyword] = useState<string>("");
 
-  const dateFromRef = useRef<HTMLInputElement | null>(null);
-  const dateToRef = useRef<HTMLInputElement | null>(null);
-
   const [results, setResults] = useState<Meeting[]>(
     [...DUMMY_MEETINGS].sort((a, b) => (a.date < b.date ? 1 : -1))
   );
@@ -697,16 +683,6 @@ const MeetingHistory: React.FC = () => {
   // ── 종료일이 시작일보다 이전인지 체크 ──
   const isDateRangeInvalid =
     dateFrom !== "" && dateTo !== "" && dateTo < dateFrom;
-
-  // ── 달력 팝업 열기 ──
-  const openDatePicker = (ref: React.MutableRefObject<HTMLInputElement | null>) => {
-    if (!ref.current) return;
-    if (typeof ref.current.showPicker === "function") {
-      ref.current.showPicker();
-    } else {
-      ref.current.focus();
-    }
-  };
 
   // ── 검색 ──
   const handleSearch = () => {
@@ -792,51 +768,25 @@ const MeetingHistory: React.FC = () => {
             <div className="flex flex-col gap-1.5">
               <label className="text-[12px] font-bold text-gray-500">기간</label>
               <div className="flex items-center gap-2">
-
-                {/* 시작일 */}
-                <div className="relative flex-1">
-                  <input
-                    ref={dateFromRef}
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    max="9999-12-31"
-                    className="w-full h-9 pl-3 pr-8 text-[12px] border border-gray-300 rounded-md text-gray-700 focus:outline-none focus:border-[#91D148]"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => openDatePicker(dateFromRef)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#91D148] transition-colors"
-                  >
-                    <CalendarIcon />
-                  </button>
-                </div>
-
-                <span className="text-gray-400 text-[12px] flex-shrink-0">~</span>
-
-                {/* 종료일 */}
-                <div className="relative flex-1">
-                  <input
-                    ref={dateToRef}
-                    type="date"
-                    value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
-                    max="9999-12-31"
-                    className={`w-full h-9 pl-3 pr-8 text-[12px] border rounded-md text-gray-700 focus:outline-none ${
-                      isDateRangeInvalid
-                        ? "border-red-400 bg-red-50 focus:border-red-400"
-                        : "border-gray-300 focus:border-[#91D148]"
-                    }`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => openDatePicker(dateToRef)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#91D148] transition-colors"
-                  >
-                    <CalendarIcon />
-                  </button>
-                </div>
-
+                
+                {/* 💡 DatePicker 교체 완료 */}
+                <DatePicker
+                  value={dateFrom}
+                  onChange={setDateFrom}
+                  placeholder="시작일 선택"
+                />
+                
+                <span className="text-gray-400 text-[12px] flex-shrink-0 font-bold">~</span>
+                
+                {/* 💡 DatePicker 교체 완료 및 화면 잘림 방지 (alignRight) 추가 */}
+                <DatePicker
+                  value={dateTo}
+                  onChange={setDateTo}
+                  placeholder="종료일 선택"
+                  isInvalid={isDateRangeInvalid}
+                  alignRight={true}
+                />
+                
               </div>
 
               {/* 날짜 오류 경고 문구 */}
@@ -889,7 +839,7 @@ const MeetingHistory: React.FC = () => {
                           backgroundColor: DUMMY_MEETINGS.find((m) => m.projectName === name)?.projectColor,
                         }}
                       />
-                      {name}
+                        {name}
                     </button>
                   ))}
                 </div>
