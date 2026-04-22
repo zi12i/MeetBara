@@ -11,6 +11,22 @@ const ServerIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="n
 const SettingsIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>;
 const HardHatIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 18h20"></path><path d="M19 18v-6a7 7 0 0 0-14 0v6"></path><path d="M12 4v5"></path><path d="M9 13h6"></path></svg>;
 const ChevronDownIcon = ({ className }: { className?: string }) => <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>;
+const GridIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="7" height="7"></rect>
+    <rect x="14" y="3" width="7" height="7"></rect>
+    <rect x="14" y="14" width="7" height="7"></rect>
+    <rect x="3" y="14" width="7" height="7"></rect>
+  </svg>
+);
+
+// 프로젝트 관리용: 업무를 담는 서류가방(Briefcase) 형태
+const BriefcaseIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+  </svg>
+);
 
 type NavItem = {
   name: string;
@@ -24,17 +40,17 @@ const topFixedItems: NavItem[] = [
   { name: "빠른 회의 시작", path: "/meeting/quick/live", icon: <PlayIcon />, borderColor: "#91D148" },
   { name: "회의 시작", path: "/meeting-start", icon: <PlayIcon />, borderColor: "#91D148" },
   { name: "회의 등록", path: "/meeting-register", icon: <EditIcon />, borderColor: "#CAE7A7" },
-  { name: "회의 일정", path: "/meeting-schedule", icon: <CalendarIcon />, borderColor: "#E2F3CA" },
+  { name: "회의 일정", path: "/calendar", icon: <CalendarIcon />, borderColor: "#E2F3CA" },
 ];
 
 const navItems: NavItem[] = [
   {
-    icon: <DocumentIcon />,
-    name: "워크 스페이스",
+    icon: <GridIcon />,
+    name: "워크스페이스",
     path: "/workspace",
   },  
   {
-    icon: <DocumentIcon />,
+    icon: <BriefcaseIcon />,
     name: "프로젝트 관리",
     path: "/project-management",
   },
@@ -44,7 +60,7 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "진행 현황", path: "/status", pro: false },
       { name: "히스토리", path: "/history", pro: false },
-      { name: "회의 일정 관리", path: "/calendar", pro: false },
+      { name: "회의 일정", path: "/calendar", pro: false },
     ],
   },
   {
