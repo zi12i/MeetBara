@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom"; // ★ 페이지 이동을 위한 useNavigate 추가
+import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import PageMeta from "../../components/common/PageMeta";
 import CapybaraZone from "../../components/common/CapybaraZone";
 import Toast from "../../components/common/Toast"; 
@@ -72,17 +72,22 @@ interface TaskData {
 }
 
 const Status: React.FC = () => {
-  const navigate = useNavigate(); // ★ navigate 함수 초기화
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("familiarity");
   const [selectedItem, setSelectedItem] = useState<FamiliarityData | UnresolvedData | TaskData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Toast 상태 (유지)
   const [isToastVisible, setIsToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastSubMessage, setToastSubMessage] = useState("");
 
-  // === [데이터 1] 안건 숙지 현황 (유지) ===
+  // 데이터 색상 추출 헬퍼 함수 (bg-[#...] 클래스에서 hex 추출)
+  const getHexColor = (colorClass?: string) => {
+    if (!colorClass) return "#91D148";
+    const match = colorClass.match(/#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})/);
+    return match ? `#${match[1]}` : "#91D148";
+  };
+
   const familiarityList: FamiliarityData[] = [
     {
       id: 1,
@@ -116,7 +121,6 @@ const Status: React.FC = () => {
     }
   ];
 
-  // === [데이터 2] 미결정 안건 리스트 (유지) ===
   const unresolvedList: UnresolvedData[] = [
     {
       id: 102,
@@ -143,7 +147,6 @@ const Status: React.FC = () => {
     }
   ];
 
-  // === [데이터 3] 업무 이행 현황 (유지) ===
   const taskList: TaskData[] = [
     {
       id: 201,
@@ -195,8 +198,6 @@ const Status: React.FC = () => {
       setSelectedItem(unresolvedList[0]);
     } else if (activeTab === "task" && taskList.length > 0) {
       setSelectedItem(taskList[0]);
-    } else {
-      setSelectedItem(null);
     }
   }, [activeTab]);
 
@@ -227,7 +228,7 @@ const Status: React.FC = () => {
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
-                  className={`flex-1 py-5 text-[15px] font-black transition-all relative ${
+                  className={`flex-1 py-5 text-[14px] font-black transition-all relative ${
                     activeTab === id ? "text-gray-900 bg-white" : "text-gray-400 hover:text-gray-600"
                   }`}
                 >
@@ -238,53 +239,79 @@ const Status: React.FC = () => {
             })}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
+          <div className="flex-1 overflow-y-auto p-6 space-y-5 no-scrollbar">
+            {/* 1. 안건 숙지 현황 카드 */}
             {activeTab === "familiarity" && familiarityList.map((item) => {
               const total = item.participants.length;
               const confirmed = item.participants.filter(p => p.status === "확인완료").length;
               const rate = Math.round((confirmed / total) * 100);
               return (
-                <div key={item.id} onClick={() => setSelectedItem(item)} className={`relative p-5 pl-7 rounded-2xl border cursor-pointer overflow-hidden ${selectedItem?.id === item.id ? "border-[#91D148] bg-[#F4F9ED]/50" : "border-gray-100 bg-white"}`}>
-                  <div className={`absolute left-0 top-0 bottom-0 w-2 ${item.color}`}></div>
-                  <p className="text-[12px] text-gray-500 mb-1">{item.meetingDate} {item.meetingTime} | {item.meetingName}</p>
-                  <h4 className="text-[15px] font-bold text-gray-800">{item.projectName} | 숙지율: {rate}% ({confirmed}/{total}명)</h4>
+                <div 
+                  key={item.id} 
+                  onClick={() => setSelectedItem(item)}
+                  className={`min-w-0 bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all border-l-8 cursor-pointer shrink-0 ${selectedItem?.id === item.id ? "border-[#91D148]/50 ring-1 ring-[#91D148]/30 shadow-md" : ""}`}
+                  style={{ borderLeftColor: getHexColor(item.color) }}
+                >
+                  <div className="bg-gray-50/50 p-4 border-b border-gray-50">
+                    <h3 className="font-black text-gray-800 text-[15px] truncate">{item.meetingName}</h3>
+                  </div>
+                  <div className="p-5 space-y-2">
+                    <div className="text-[13px] space-y-1.5">
+                      <p className="flex text-gray-400 font-bold"><span className="w-16">날짜</span><span className="text-gray-700">{item.meetingDate} {item.meetingTime}</span></p>
+                      <p className="flex text-gray-400 font-bold"><span className="w-16">프로젝트</span><span className="text-gray-700 truncate">{item.projectName}</span></p>
+                      <p className="flex text-gray-400 font-bold"><span className="w-16">숙지율</span><span className="text-[#91D148] font-black">{rate}% ({confirmed}/{total}명 완료)</span></p>
+                    </div>
+                  </div>
                 </div>
               );
             })}
 
+            {/* 2. 미결정 안건 카드 */}
             {activeTab === "unresolved" && unresolvedList.map((item) => (
-              <div key={item.id} onClick={() => setSelectedItem(item)} className={`relative p-5 pl-7 rounded-2xl border cursor-pointer overflow-hidden ${selectedItem?.id === item.id ? "border-[#91D148] bg-[#F4F9ED]/50" : "border-gray-100 bg-white"}`}>
-                {item.color && <div className={`absolute left-0 top-0 bottom-0 w-2 ${item.color}`}></div>}
-                <div className="flex flex-col gap-1">
-                  <p className="text-[11px] font-bold text-gray-400">미결정발생일: <span className="font-normal text-gray-500 ml-1">{item.meetingDate}</span></p>
-                  <h4 className="text-[16px] font-black text-gray-800 my-1">{item.agendaTitle}</h4>
-                  <div className="mt-1 space-y-0.5 text-[12px] text-gray-600">
-                    <p><span className="font-bold text-gray-400 mr-1.5">프로젝트명:</span>{item.projectName}</p>
-                    <p><span className="font-bold text-gray-400 mr-1.5">상정예정회의:</span><span className="text-[#91D148] font-bold">{item.scheduledMeeting}</span></p>
+              <div 
+                key={item.id} 
+                onClick={() => setSelectedItem(item)}
+                className={`min-w-0 bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all border-l-8 cursor-pointer shrink-0 ${selectedItem?.id === item.id ? "border-[#91D148]/50 ring-1 ring-[#91D148]/30 shadow-md" : ""}`}
+                style={{ borderLeftColor: getHexColor(item.color) }}
+              >
+                <div className="bg-gray-50/50 p-4 border-b border-gray-50">
+                  <h3 className="font-black text-gray-800 text-[15px] truncate">{item.agendaTitle}</h3>
+                </div>
+                <div className="p-5 space-y-2">
+                  <div className="text-[13px] space-y-1.5">
+                    <p className="flex text-gray-400 font-bold"><span className="w-20">미결정발생</span><span className="text-gray-700">{item.meetingDate}</span></p>
+                    <p className="flex text-gray-400 font-bold"><span className="w-20">프로젝트</span><span className="text-gray-700 truncate">{item.projectName}</span></p>
+                    <p className="flex text-gray-400 font-bold"><span className="w-20">상정예정</span><span className="text-[#91D148] font-bold">{item.scheduledMeeting}</span></p>
+                    <p className="flex text-gray-400 font-bold"><span className="w-20">상태</span><span className="text-red-500 font-bold">{item.status}</span></p>
                   </div>
                 </div>
               </div>
             ))}
 
+            {/* 3. 업무 이행 현황 카드 */}
             {activeTab === "task" && taskList.map((item) => {
               const rate = Math.round((item.completedCount / item.totalCount) * 100);
               return (
-                <div key={item.id} onClick={() => setSelectedItem(item)} className={`relative p-5 pl-7 rounded-2xl border cursor-pointer overflow-hidden ${selectedItem?.id === item.id ? "border-[#91D148] bg-[#F4F9ED]/50" : "border-gray-100 bg-white"}`}>
-                  <div className={`absolute left-0 top-0 bottom-0 w-2 ${item.color || 'bg-gray-200'}`}></div>
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <p className="text-[12px] text-gray-500 font-bold">{item.meetingName}({item.meetingDate})</p>
-                      <h4 className="text-[14px] font-medium text-gray-400">{item.projectName}</h4>
-                      <p className="text-[14px] font-black text-gray-800">
-                        업무이행률: <span className="text-[#91D148]">{rate}%</span> ({item.completedCount}/{item.totalCount} 완료)
+                <div 
+                  key={item.id} 
+                  onClick={() => setSelectedItem(item)}
+                  className={`min-w-0 bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all border-l-8 cursor-pointer shrink-0 ${selectedItem?.id === item.id ? "border-[#91D148]/50 ring-1 ring-[#91D148]/30 shadow-md" : ""}`}
+                  style={{ borderLeftColor: getHexColor(item.color) }}
+                >
+                  <div className="bg-gray-50/50 p-4 border-b border-gray-50">
+                    <h3 className="font-black text-gray-800 text-[15px] truncate">{item.meetingName}</h3>
+                  </div>
+                  <div className="p-5 space-y-2">
+                    <div className="text-[13px] space-y-1.5">
+                      <p className="flex text-gray-400 font-bold"><span className="w-16">날짜</span><span className="text-gray-700">{item.meetingDate}</span></p>
+                      <p className="flex text-gray-400 font-bold"><span className="w-16">프로젝트</span><span className="text-gray-700 truncate">{item.projectName}</span></p>
+                      <p className="flex text-gray-400 font-bold"><span className="w-16">이행률</span><span className="text-[#91D148] font-black">{rate}% ({item.completedCount}/{item.totalCount} 완료)</span></p>
+                      <p className="flex text-gray-400 font-bold">
+                        <span className="w-16">상태</span>
+                        <span className={`font-black ${item.status === "지연발생" ? "text-red-500" : "text-blue-500"}`}>
+                          {item.status === "지연발생" ? "⚠️ " : ""}{item.status}
+                        </span>
                       </p>
-                    </div>
-                    <div className={`px-2.5 py-1 rounded-md text-[10px] font-black ${
-                      item.status === "지연발생" ? "bg-red-50 text-red-500 border border-red-100" : 
-                      item.status === "완료" ? "bg-gray-50 text-gray-400 border border-gray-100" : 
-                      "bg-blue-50 text-blue-500 border border-blue-100"
-                    }`}>
-                      {item.status === "지연발생" && "⚠️ "} {item.status}
                     </div>
                   </div>
                 </div>
@@ -297,10 +324,10 @@ const Status: React.FC = () => {
         <div className="flex-1 border border-gray-100 rounded-[32px] bg-[#F4F9ED]/30 p-8 overflow-hidden flex flex-col items-center justify-center relative">
           {selectedItem ? (
             <div className="w-full max-w-4xl max-h-full bg-white p-10 rounded-[40px] shadow-sm border border-gray-100 relative overflow-hidden flex flex-col no-scrollbar">
-              <div className={`absolute left-0 top-10 w-2 h-20 ${selectedItem.color} rounded-r-lg`}></div>
+              <div className={`absolute left-0 top-10 w-2 h-20 ${selectedItem.color || 'bg-[#91D148]'} rounded-r-lg`}></div>
               
               <div className="flex-1 overflow-y-auto pr-2 no-scrollbar">
-                {/* 1. 미결정 안건 상세 (유지) */}
+                {/* 1. 미결정 안건 상세 */}
                 {selectedItem.type === "unresolved" && (
                   <div className="space-y-8 animate-fade-in">
                     <h2 className="text-3xl font-black text-gray-900 leading-tight mb-8">{selectedItem.agendaTitle}</h2>
@@ -340,7 +367,7 @@ const Status: React.FC = () => {
                   </div>
                 )}
 
-                {/* 2. 안건 숙지 현황 상세 (유지) */}
+                {/* 2. 안건 숙지 현황 상세 */}
                 {selectedItem.type === "familiarity" && (
                   <div className="space-y-6 animate-fade-in">
                     <h2 className="text-3xl font-black text-gray-900 leading-tight mb-8">{selectedItem.meetingName}</h2>
@@ -365,7 +392,7 @@ const Status: React.FC = () => {
                   </div>
                 )}
 
-                {/* 3. 업무 이행 현황 상세 (유지) */}
+                {/* 3. 업무 이행 현황 상세 */}
                 {selectedItem.type === "task" && (
                   <div className="space-y-8 animate-fade-in">
                     <div className="flex justify-between items-start border-b border-gray-50 pb-8">
@@ -462,7 +489,7 @@ const Status: React.FC = () => {
                 )}
                 {selectedItem.type === "task" && (
                   <button 
-                    onClick={() => navigate("/meeting-register")} // ★ alert 대신 실제 페이지 이동 적용
+                    onClick={() => navigate("/meeting-register")}
                     className="w-full py-5 text-white font-black rounded-2xl shadow-xl transition-all bg-[#91D148] shadow-[#91D148]/20 flex items-center justify-center gap-2"
                   >
                     차기안건조정하러가기 <span className="text-lg">→</span>
@@ -474,15 +501,13 @@ const Status: React.FC = () => {
             <div className="text-center text-gray-400 animate-fade-in">
               <div className="text-6xl mb-6 opacity-30">📂</div>
               <p className="font-bold leading-relaxed text-gray-500">
-                {activeTab === "task" ? <>리스트에서 회의를 선택하여<br/>업무 이행의 상세내용을 확인해 보세요.</> : 
-                 activeTab === "unresolved" ? <>리스트에서 미결정안건을 선택하여<br/>상세내용을 확인해 보세요.</> : 
-                 <>리스트에서 항목을 선택하여<br/>상세정보를 확인해 보세요.</>}
+                항목을 선택하여 상세정보를 확인해 보세요.
               </p>
             </div>
           )}
         </div>
 
-        {/* 모달 로직 (유지) */}
+        {/* 모달 로직 */}
         {isModalOpen && selectedItem?.type === "familiarity" && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white rounded-[40px] p-10 w-[440px] shadow-2xl text-center">
@@ -509,7 +534,6 @@ const Status: React.FC = () => {
           </div>
         )}
         
-        {/* 바라존 포털 (유지) */}
         {typeof document !== "undefined" && createPortal(<CapybaraZone />, document.body)}
       </div>
     </>
