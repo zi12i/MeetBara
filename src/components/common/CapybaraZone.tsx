@@ -21,6 +21,7 @@ const BARA_SCENARIOS: Scenario[] = [
   { id: "meeting_warning", img: "C_1.png", msg: "안건을 벗어났음니다", color: "bg-[#FF6B6B]", footerType: "status", footerValue: "복귀 필요!" },
   { id: "generating", img: "C_5.png", msg: "회의록을 작성 중 입니다", color: "bg-[#7000FF]", footerType: "status", footerValue: "AI 요약 중" },
   { id: "idle", img: "C_7.png", msg: "지금 한가하심니까?", color: "bg-gray-400", footerType: "schedule", footerValue: "26. 5. 13 / 14:00" },
+  { id: "dancing", img: "Bara_Dancing.gif", msg: "후후 이대로하십쇼", color: "bg-gray-400", footerType: "schedule", footerValue: "26. 5. 13 / 14:00" },
   
   // 💡 1. 프로필 전용 보안 시나리오 복구
   { 
