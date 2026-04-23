@@ -5,7 +5,7 @@ import Toast from "../../components/common/Toast";
 import { createPortal } from "react-dom";
 
 // 💡 OpenAI API 키 (시연용 하드코딩 - 실서비스 배포 시 백엔드로 이관 필요)
-const OPENAI_API_KEY = import.meta.env.REACT_APP_OPENAI_API_KEY;
+const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
 // --- SVG Icons ---
 const ListIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>;
 const EditIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>;
@@ -154,7 +154,7 @@ const TemplateSettings: React.FC = () => {
     if (b.id === defaultTemplateId) return 1;
     return a.id - b.id; 
   });
-
+  console.log("현재 불러온 api 키:", OPENAI_API_KEY);
   return (
     <>
       <PageMeta title="템플릿 설정" description="회의록 템플릿 관리" />
