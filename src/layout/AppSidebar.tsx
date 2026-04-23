@@ -68,7 +68,8 @@ const navItems: NavItem[] = [
     name: "설정",
     subItems: [
       { name: "내 정보 / 계정 연동", path: "/profile", pro: false },
-      { name: "일반 / 템플릿 설정", path: "/template-settings", pro: false },
+      { name: "일반 설정", path: "/general-settings", pro: false },
+      { name: "템플릿 설정", path: "/template-settings", pro: false },
     ],
   },
   {
