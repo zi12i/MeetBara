@@ -1,9 +1,11 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PageMeta from "../../components/common/PageMeta";
 import MemberAddModal from "../../components/meetings/MemberAddModal";
 import { createPortal } from "react-dom";
 import CapybaraZone from "../../components/common/CapybaraZone";
+// 💡 커스텀 캘린더 컴포넌트 추가
+import DatePicker from "../../components/common/DatePicker";
 
 // =============================================
 // 💡 전용 SVG 아이콘 (절대 생략 금지)
@@ -86,7 +88,6 @@ const DynamicMiniCalendar = ({ project }: { project: any }) => {
 export default function ProjectManagement() {
   const navigate = useNavigate();
   
-  // 💡 가데이터 4종 (설계서 반영 및 프로젝트별 회의 분리)
   const [projects, setProjects] = useState<any[]>([
     { id: "1", name: "메인 서비스 UI 고도화", startDate: "2026-04-01", endDate: "2026-05-15", owner: "김바라", color: "#91D148", description: "디자인 시스템 고도화 및 라이브러리 구축", members: [{ id: "m1", name: "김바라", department: "기획팀", position: "PM", isPM: true }], meetings: [{ id: 101, title: "디자인 시스템 리뷰", date: "2026-04-15", time: "14:00~15:30", room: "소회의실 1호", attendees: "김바라 외 2명" }] },
     { id: "2", name: "브랜드 마케팅 캠페인", startDate: "2026-04-10", endDate: "2026-06-30", owner: "이팀장", color: "#FF87B4", description: "상반기 브랜드 홍보 전략", members: [{ id: "m2", name: "이팀장", department: "마케팅", position: "팀장", isPM: true }], meetings: [] },
@@ -102,15 +103,10 @@ export default function ProjectManagement() {
   const [nameError, setNameError] = useState("");
   const [modalKey, setModalKey] = useState(0);
 
-  // 💡 커스텀 컨펌 모달 타겟 상태
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'project' | 'member', id: string, name: string } | null>(null);
-
-  const startRef = useRef<HTMLInputElement | null>(null);
-  const endRef = useRef<HTMLInputElement | null>(null);
 
   const selectedProject = useMemo(() => projects.find(p => p.id === selectedProjectId), [projects, selectedProjectId]);
 
-  // 💡 [해결] 커스텀 컨펌 모달용 삭제 로직 (window.confirm 완전 제거)
   const confirmDeleteAction = () => {
     if (!deleteTarget) return;
     if (deleteTarget.type === 'project') {
@@ -159,17 +155,11 @@ export default function ProjectManagement() {
     }));
   };
 
-  const handleOpenPicker = (ref: React.RefObject<HTMLInputElement>) => {
-    if (ref.current && typeof ref.current.showPicker === "function") ref.current.showPicker();
-    else ref.current?.focus();
-  };
-
   return (
     <>
       <PageMeta title="프로젝트 관리" />
       {createPortal(<CapybaraZone />, document.body)}
 
-      {/* === 💡 [100% 반영] 서비스 컨벤션 통합 커스텀 컨펌 모달 === */}
       {deleteTarget && (
         <div className="fixed inset-0 z-[10000] bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white w-full max-w-[400px] rounded-[32px] p-8 shadow-2xl animate-scale-up text-center border border-gray-100">
@@ -192,9 +182,8 @@ export default function ProjectManagement() {
       )}
 
       <div className="absolute inset-0 p-6 overflow-hidden bg-transparent">
-        <div className="w-full h-full max-w-(--breakpoint-2xl) mx-auto flex gap-8">
+        <div className="w-full h-full max-w-[1600px] mx-auto flex gap-8">
           
-          {/* === [좌측] 프로젝트 리스트 - 설계서 규격 & 컬러 라벨 상시 노출 === */}
           <aside className="w-[520px] h-full bg-white rounded-[24px] shadow-sm border border-gray-200 flex flex-col shrink-0 overflow-hidden">
             <div className="p-6 border-b border-gray-100 bg-white shrink-0">
               <h2 className="text-[17px] font-black text-gray-900 flex items-center gap-2"><CalendarIcon /> 프로젝트 목록</h2>
@@ -230,7 +219,6 @@ export default function ProjectManagement() {
             </div>
           </aside>
 
-          {/* === [우측] 상세 - 설계서 위계 준수 === */}
           <main className="flex-1 h-full bg-white rounded-[24px] shadow-sm border border-gray-200 flex flex-col overflow-hidden relative">
             {selectedProject ? (
               <div className="flex flex-col h-full overflow-hidden">
@@ -300,7 +288,7 @@ export default function ProjectManagement() {
         </div>
       </div>
 
-      {/* === [프로젝트 등록/수정 모달] - 날짜 피커 버튼 복구 === */}
+      {/* === [프로젝트 등록/수정 모달] === */}
       {isFormOpen && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white w-full max-w-md rounded-[32px] p-10 shadow-2xl relative animate-zoom-in">
@@ -309,20 +297,33 @@ export default function ProjectManagement() {
             <div className="space-y-6">
               <div><label className="block text-[13px] font-bold text-gray-700 mb-1">프로젝트명 <span className="text-red-500">*</span></label><input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full h-14 bg-gray-50 border-2 border-transparent rounded-xl px-5 outline-none font-bold focus:bg-white transition-all focus:border-gray-100" />{nameError && <p className="mt-2 text-[12px] text-red-500 font-black">⚠ {nameError}</p>}</div>
               <div><label className="block text-[13px] font-bold text-gray-700 mb-3">대표 컬러</label><div className="flex flex-wrap gap-3">{PRESET_COLORS.map(c => (<button key={c} type="button" onClick={() => setFormData({...formData, color: c})} className={`w-8 h-8 rounded-full transition-all ${formData.color === c ? 'ring-4 ring-offset-2 ring-gray-300' : ''}`} style={{ backgroundColor: c }} />))}<div className="relative w-8 h-8 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden"><input type="color" value={formData.color} onChange={(e) => setFormData({...formData, color: e.target.value})} className="absolute inset-0 w-12 h-12 -m-2 cursor-pointer opacity-0" /><span className="text-gray-400 font-bold">+</span></div></div></div>
+              
+              {/* 💡 DatePicker 적용 부분 */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="relative"><label className="block text-[13px] font-bold text-gray-700 mb-1">시작일</label>
-                  <div className="relative">
-                    <input ref={startRef} type="date" value={formData.start} onChange={(e) => setFormData({...formData, start: e.target.value})} className="w-full h-14 bg-gray-50 rounded-xl px-4 font-bold outline-none" />
-                    <button type="button" onClick={() => handleOpenPicker(startRef)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900"><CalendarIcon /></button>
+                <div className="relative">
+                  <label className="block text-[13px] font-bold text-gray-700 mb-1">시작일</label>
+                  <div className="[&>div]:!w-full [&>div>div:first-child]:h-14 [&>div>div:first-child]:bg-gray-50 [&>div>div:first-child]:border-transparent">
+                    <DatePicker 
+                      value={formData.start} 
+                      onChange={(val) => setFormData({...formData, start: val})} 
+                      placeholder="시작일 선택" 
+                    />
                   </div>
                 </div>
-                <div className="relative"><label className="block text-[13px] font-bold text-gray-700 mb-1">종료일</label>
-                  <div className="relative">
-                    <input ref={endRef} type="date" value={formData.end} onChange={(e) => setFormData({...formData, end: e.target.value})} className={`w-full h-14 bg-gray-50 rounded-xl px-4 font-bold outline-none border-2 ${formData.start && formData.end && formData.end < formData.start ? 'border-red-400 bg-red-50' : 'border-transparent'}`} />
-                    <button type="button" onClick={() => handleOpenPicker(endRef)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900"><CalendarIcon /></button>
+                <div className="relative">
+                  <label className="block text-[13px] font-bold text-gray-700 mb-1">종료일</label>
+                  <div className="[&>div]:!w-full [&>div>div:first-child]:h-14 [&>div>div:first-child]:bg-gray-50">
+                    <DatePicker 
+                      value={formData.end} 
+                      onChange={(val) => setFormData({...formData, end: val})} 
+                      placeholder="종료일 선택" 
+                      isInvalid={!!(formData.start && formData.end && formData.end < formData.start)}
+                      alignRight={true}
+                    />
                   </div>
                 </div>
               </div>
+
               <div><label className="block text-[13px] font-bold text-gray-700 mb-1">상세 설명</label><textarea rows={2} value={formData.desc} onChange={(e) => setFormData({...formData, desc: e.target.value})} className="w-full bg-gray-50 border-2 border-transparent rounded-xl p-5 font-bold resize-none" /></div>
             </div>
             <div className="flex gap-3 mt-10">

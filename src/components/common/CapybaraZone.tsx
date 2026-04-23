@@ -23,7 +23,6 @@ const BARA_SCENARIOS: Scenario[] = [
   { id: "idle", img: "C_7.png", msg: "지금 한가하심니까?", color: "bg-gray-400", footerType: "schedule", footerValue: "26. 5. 13 / 14:00" },
   { id: "dancing", img: "Bara_Dancing.gif", msg: "후후 이대로하십쇼", color: "bg-gray-400", footerType: "schedule", footerValue: "26. 5. 13 / 14:00" },
   
-  // 💡 1. 프로필 전용 보안 시나리오 복구
   { 
     id: "profile_setting", 
     img: "C_3.png", 
@@ -41,6 +40,9 @@ const CapybaraZone: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit' }));
   const nodeRef = useRef(null);
 
+  // 가로형(최소화) 모드 상태 관리
+  const [isMinimized, setIsMinimized] = useState(false);
+
   const isQuickMeeting = pathname.includes("/meeting/quick");
   const isLiveMeeting = pathname.includes("/meeting/") && !isQuickMeeting;
 
@@ -53,18 +55,35 @@ const CapybaraZone: React.FC = () => {
     return () => clearInterval(timer);
   }, [isLiveMeeting]);
 
-  // 💡 2. 경로에 따른 시나리오 강제 전환 로직 복구
+  // 💡 경로에 따른 시나리오 강제 전환 및 수면 모드 유지 로직
   useEffect(() => {
+    // 1. 시나리오(표정/문구) 변경
     if (pathname === "/profile") {
-      // 내 정보 화면일 때
       setCurrentScenario(BARA_SCENARIOS.find(s => s.id === "profile_setting") || BARA_SCENARIOS[0]);
     } else if (pathname === "/" || pathname === "/home") {
-      // 홈 화면일 때
       setCurrentScenario(BARA_SCENARIOS.find(s => s.id === "idle") || BARA_SCENARIOS[5]);
     } else if (isLiveMeeting || isQuickMeeting) {
-      // 미팅 화면일 때
       setCurrentScenario(BARA_SCENARIOS.find(s => s.id === "meeting_normal") || BARA_SCENARIOS[1]);
     }
+
+    else if (pathname.includes("/meeting-start")){
+      setIsMinimized(true);
+    }
+    
+
+    // 2. 💡 수면 모드(최소화) 자동 조절 및 유지
+    if (isLiveMeeting || isQuickMeeting) {
+      // 회의 화면 진입 시 무조건 깨어남(세로형 기본 모드)
+      setIsMinimized(false);
+    } else if (pathname.includes("/settings") || pathname.includes("/workspace") || pathname.includes("/project") || 
+    pathname.includes("/meeting-start") || pathname.includes("/meeting-register") || pathname.includes("/calandar") || 
+  pathname.includes("/workspace") || pathname.includes("/project-management") || pathname.includes("/profile") || 
+pathname.includes("/profile") || pathname.includes("/history")){
+      // 특정 화면에서는 자동으로 수면 모드 전환
+      setIsMinimized(true);
+    }
+    // 그 외의 일반 탭 이동 시에는 이전 상태(사용자가 설정한 상태)를 초기화하지 않고 그대로 유지합니다.
+
   }, [pathname, isLiveMeeting, isQuickMeeting]);
 
   useEffect(() => {
@@ -102,7 +121,6 @@ const CapybaraZone: React.FC = () => {
         );
       case "progress":
         return <span className={`text-[13px] font-black ${textColor}`}>Progress: {footerValue}%</span>;
-      // 💡 수정: 다음 회의 일정을 위한 전용 UI 렌더링 추가
       case "schedule":
         return (
           <div className={`flex flex-col items-center leading-none ${textColor}`}>
@@ -120,36 +138,56 @@ const CapybaraZone: React.FC = () => {
 
   return (
     <Draggable nodeRef={nodeRef} onStart={() => setIsDragging(true)} onStop={() => setIsDragging(false)} bounds="body">
-      <div ref={nodeRef} className="fixed bottom-10 right-10 z-[9999] flex flex-col items-end gap-3 cursor-grab active:cursor-grabbing touch-none">
+      <div 
+        ref={nodeRef} 
+        className="fixed bottom-1 right-1 z-[9999] flex flex-col items-end gap-3 cursor-grab active:cursor-grabbing touch-none"
+        onDoubleClick={() => setIsMinimized(!isMinimized)}
+      >
         
-        {!isDragging && (
+        {/* 최소화 상태가 아닐 때만 말풍선 표시 */}
+        {!isDragging && !isMinimized && (
           <div className="relative bg-white border-2 border-gray-100 shadow-2xl rounded-[8px] p-4 min-w-[220px] max-w-[220px] animate-fade-in-up select-none pointer-events-none mb-1 transition-all">
             <p className="text-[14px] text-gray-800 font-bold text-center leading-tight break-keep">{currentScenario.msg}</p>
             <div className="absolute -bottom-2 right-8 w-4 h-4 bg-white border-b-2 border-r-2 border-gray-100 transform rotate-45"></div>
           </div>
         )}
         
-        <div className="w-52 h-[250px] bg-white border border-gray-200 rounded-[8px] shadow-[0_30px_60px_rgba(0,0,0,0.2)] flex flex-col overflow-hidden transition-all">
-          
-          <div className={`h-13 w-full shrink-0 flex items-center justify-center ${currentScenario.color} transition-colors duration-500`}>
-            <span className={`text-[32px] font-black tracking-tighter tabular-nums ${currentScenario.color.includes("FFD154") ? 'text-gray-900' : 'text-white'}`}>
-              {isLiveMeeting ? currentScenario.timeLeft : currentTime}
-            </span>
-          </div>
-
-          <div className="flex-1 bg-[#f5f5f5] flex items-center justify-center relative min-h-0">
+        {isMinimized ? (
+          // 💡 요청하신 사이즈 (w-200px, h-65px) 반영 
+          <div className="w-[200px] h-[65px] bg-white border border-gray-200 rounded-2xl shadow-[0_15px_30px_rgba(0,0,0,0.15)] flex items-center justify-center overflow-hidden transition-all duration-300">
+            {/* 수면 모드 이미지 */}
             <img 
-              src={`/images/bara/${currentScenario.img}`} 
-              alt="바라" 
-              className="w-full h-full object-contain select-none transition-transform duration-300" 
+              src="/images/bara/C_sleep.png" 
+              alt="수면 중인 바라" 
+              className="w-full h-full object-cover select-none" 
               draggable={false} 
             />
           </div>
+        ) : (
+          // 기본 세로형 모드
+          <div className="w-52 h-[250px] bg-white border border-gray-200 rounded-[8px] shadow-[0_30px_60px_rgba(0,0,0,0.2)] flex flex-col overflow-hidden transition-all">
+            
+            <div className={`h-13 w-full shrink-0 flex items-center justify-center ${currentScenario.color} transition-colors duration-500`}>
+              <span className={`text-[32px] font-black tracking-tighter tabular-nums ${currentScenario.color.includes("FFD154") ? 'text-gray-900' : 'text-white'}`}>
+                {isLiveMeeting ? currentScenario.timeLeft : currentTime}
+              </span>
+            </div>
 
-          <div className={`h-10 w-full shrink-0 flex items-center justify-center ${currentScenario.color} transition-colors duration-500`}>
-            {renderFooter()}
+            <div className="flex-1 bg-[#f5f5f5] flex items-center justify-center relative min-h-0">
+              <img 
+                src={`/images/bara/${currentScenario.img}`} 
+                alt="바라" 
+                className="w-full h-full object-contain select-none transition-transform duration-300" 
+                draggable={false} 
+              />
+            </div>
+
+            <div className={`h-10 w-full shrink-0 flex items-center justify-center ${currentScenario.color} transition-colors duration-500`}>
+              {renderFooter()}
+            </div>
           </div>
-        </div>
+        )}
+
       </div>
     </Draggable>
   );
