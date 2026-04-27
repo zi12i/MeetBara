@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom"; // 💡 페이지 이동을 위한 useNavigate 추가
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -245,6 +246,7 @@ const MeetingDetailContent: React.FC<{
 
 // === 3. 메인 캘린더 컴포넌트 ===
 const Calendar: React.FC = () => {
+  const navigate = useNavigate(); // 💡 네비게이션 훅 사용
   const calendarRef = useRef<FullCalendar>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -308,11 +310,9 @@ const Calendar: React.FC = () => {
         let scrollTarget = "09:00:00"; // 기본값
 
         if (dailyMeetings.length > 0) {
-          // 1순위: 해당 날짜의 첫 회의 시간
           const firstMeetingStart = dailyMeetings[0].start.split('T')[1];
           scrollTarget = firstMeetingStart;
         } else {
-          // 2순위: 회의가 없으면 현재 시각 (단, 업무 범위 내일 때만)
           const currentHour = new Date().getHours();
           if (currentHour >= 7 && currentHour <= 23) {
             scrollTarget = currentTimeStr;
@@ -333,7 +333,6 @@ const Calendar: React.FC = () => {
     const api = calendarRef.current?.getApi();
     if (api) { 
       direction === 'prev' ? api.prev() : api.next(); 
-      // API 이동 후 내부 날짜 상태 동기화
       const newDate = api.getDate();
       setSelectedDate(formatDate(newDate));
       updateTitle(); 
@@ -347,7 +346,6 @@ const Calendar: React.FC = () => {
         <div className="flex-1 flex flex-col min-w-0 h-full">
           <div className="flex flex-col gap-4 mb-6 px-4 shrink-0">
             <div className="flex justify-between items-center">
-              {/* 💡 [수정 구역] 왼쪽 네비게이팅 섹션 */}
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-3">
                   <h2 
@@ -356,8 +354,6 @@ const Calendar: React.FC = () => {
                   >
                     {calendarTitle}
                   </h2>
-                  
-                  {/* 💡 메인 타이틀 옆에 DatePicker 및 아이콘 추가 */}
                   <div className="relative w-8 h-8 flex items-center justify-center text-gray-300 hover:text-[#91D148] transition-colors cursor-pointer group">
                     <div className="absolute inset-0 opacity-0 z-10 w-full h-full overflow-hidden [&>div]:!w-full [&>div]:!h-full">
                       <DatePicker 
@@ -398,7 +394,7 @@ const Calendar: React.FC = () => {
           <div className="flex-1 bg-white border border-gray-100 rounded-[40px] shadow-sm overflow-hidden flex flex-col relative">
             <div ref={scrollContainerRef} className={`flex-1 px-8 py-6 ${currentView === 'dayGridMonth' ? 'custom-month-grid' : 'custom-time-grid'}`}>
               <FullCalendar
-                key={currentView + selectedDate} // 날짜나 뷰가 바뀔 때 인스턴스 초기화로 스크롤 버그 원천 차단
+                key={currentView + selectedDate}
                 ref={calendarRef}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                 initialView={currentView}
@@ -461,7 +457,6 @@ const Calendar: React.FC = () => {
                 <div className="px-7 mb-6 flex justify-between items-end shrink-0">
                   <div className="flex flex-col gap-1">
                     <span className="text-[12px] font-black text-[#91D148] uppercase tracking-tighter">Daily Briefing</span>
-                    {/* 💡 [원상 복구] 우측 브리핑 패널은 원본 그대로 유지 */}
                     <span className="text-[22px] font-black text-gray-900 tracking-tight leading-none">{selectedDate.replace(/-/g, '.')}</span>
                   </div>
                   <button onClick={() => setSelectedDate(todayStr)} className="text-[12px] font-bold text-gray-400 hover:text-[#91D148] underline underline-offset-4">오늘로</button>
@@ -488,7 +483,13 @@ const Calendar: React.FC = () => {
                 </div>
               </div>
               <div className="p-5 bg-white border-t border-gray-50 shrink-0">
-                <button className="w-full py-4 bg-[#91D148] text-white font-black rounded-2xl shadow-lg shadow-[#91D148]/10 hover:brightness-105 transition-all">이 날짜에 회의 등록</button>
+                {/* 💡 [수정] 클릭 시 '/meeting-register' 경로로 이동 */}
+                <button 
+                  onClick={() => navigate('/meeting-register')} 
+                  className="w-full py-4 bg-[#91D148] text-white font-black rounded-2xl shadow-lg shadow-[#91D148]/10 hover:brightness-105 transition-all"
+                >
+                  이 날짜에 회의 등록
+                </button>
               </div>
             </div>
           </div>
@@ -535,13 +536,20 @@ const Calendar: React.FC = () => {
   );
 };
 
+// === 월별 관리(MONTHLY) 마커 렌더러 ===
 const renderMonthEvent = (eventInfo: any) => {
   const { calendar } = eventInfo.event.extendedProps;
   const colorMap: any = { Danger: "bg-[#FF6B6B]", Primary: "bg-[#4D7CFE]", Success: "bg-[#91D148]", Warning: "bg-[#FF9F43]" };
-  return <div className={`w-full h-6 rounded-md shadow-sm ${colorMap[calendar] || 'bg-gray-400'}`} />;
+  const startTime = eventInfo.event.start?.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return (
+    <div className={`w-full h-5 rounded-md shadow-sm ${colorMap[calendar] || 'bg-gray-400'} flex items-center px-1.5 gap-1.5 overflow-hidden transition-opacity hover:opacity-90`}>
+      <span className="text-[9px] font-black text-white/90 shrink-0">{startTime}</span>
+      <span className="text-[9px] font-bold text-white truncate">{eventInfo.event.title}</span>
+    </div>
+  );
 };
 
-// === 💡 수정: 일별 관리(DAILY) 전용 최적화 카드 레이아웃 ===
+// === 일별 관리(DAILY) 및 주별 관리(WEEKLY) 렌더러 ===
 const renderWeekEvent = (eventInfo: any, hexColors: any) => {
   const { 
     calendar, projectName, location, duration, manager, departments, participants, agendas 
@@ -556,7 +564,6 @@ const renderWeekEvent = (eventInfo: any, hexColors: any) => {
   const endTime = eventInfo.event.end?.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 
   if (!isDailyView) {
-    // 주별 관리(WEEKLY): 기존 간결 레이아웃
     return (
       <div 
         className={`flex flex-col h-full w-full p-3 gap-2.5 rounded-xl border-l-[6px] shadow-sm overflow-hidden transition-all duration-200 ${
@@ -585,7 +592,6 @@ const renderWeekEvent = (eventInfo: any, hexColors: any) => {
     );
   }
 
-  // 💡 일별 관리(DAILY): 폰트 및 줄간격 최적화 레이아웃
   return (
     <div 
       className={`flex flex-col h-full w-full p-3.5 gap-2.5 rounded-[20px] border-l-[6px] shadow-md transition-all duration-200 overflow-y-auto no-scrollbar ${
@@ -593,7 +599,6 @@ const renderWeekEvent = (eventInfo: any, hexColors: any) => {
       }`} 
       style={{ borderLeftColor: isCompleted ? '#D1D5DB' : projectColor }}
     >
-      {/* 1. 헤더 (상태 + 프로젝트명) */}
       <div className="flex justify-between items-center shrink-0">
         <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-black border shadow-sm ${status.style}`}>
           {status.label}
@@ -603,12 +608,10 @@ const renderWeekEvent = (eventInfo: any, hexColors: any) => {
         </span>
       </div>
 
-      {/* 2. 회의 제목 (사이즈 축소 및 줄간격 조정) */}
       <h4 className={`text-[14.5px] font-black leading-tight shrink-0 ${isCompleted ? 'text-gray-300' : 'text-gray-900'}`}>
         {eventInfo.event.title}
       </h4>
 
-      {/* 3. 회의 개요 (일시, 소요시간, 장소) */}
       <div className="grid grid-cols-2 gap-y-2 gap-x-3 py-2.5 border-y border-gray-50 shrink-0">
         <div className="flex flex-col">
           <span className="text-[9px] font-bold text-gray-300 uppercase tracking-tighter">일시</span>
@@ -626,7 +629,6 @@ const renderWeekEvent = (eventInfo: any, hexColors: any) => {
         </div>
       </div>
 
-      {/* 4. 프로젝트 정보 (PM, 부서, 참여자) */}
       <div className="flex flex-col gap-2.5 shrink-0">
         <div className="flex items-center justify-between">
            <div className="flex flex-col">
@@ -650,7 +652,6 @@ const renderWeekEvent = (eventInfo: any, hexColors: any) => {
         </div>
       </div>
 
-      {/* 5. 안건 미리보기 (글자 크기 축소) */}
       {agendas && agendas.length > 0 && (
         <div className="pt-2 border-t border-gray-50 shrink-0">
           <p className="text-[10px] font-black text-[#91D148] mb-1.5 flex items-center gap-1.5">
