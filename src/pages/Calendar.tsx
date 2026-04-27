@@ -10,6 +10,8 @@ import { useModal } from "../hooks/useModal";
 import PageMeta from "../components/common/PageMeta";
 import CapybaraZone from "../components/common/CapybaraZone";
 import { createPortal } from "react-dom";
+// 💡 DatePicker 컴포넌트 임포트
+import DatePicker from "../components/common/DatePicker";
 
 // === 1. 데이터 타입 정의 ===
 interface MeetingEvent extends EventInput {
@@ -24,17 +26,27 @@ interface MeetingEvent extends EventInput {
     location: string;
     participants: string[];
     description: string;
-    manager: string; // 책임자(PM)
-    departments: string; // 참여부서
-    nature: string; // 회의 성격
-    duration: string; // 소요 시간
-    agendas: string[]; // 안건
-    undecidedAgendas: string[]; // 미결정 안건
-    materialLink?: { title: string; url: string }; // 사전자료
-    history?: { id: string; title: string; date: string }[]; // 연결된 히스토리
+    manager: string;
+    departments: string;
+    nature: string;
+    duration: string;
+    agendas: string[];
+    undecidedAgendas: string[];
+    materialLink?: { title: string; url: string };
+    history?: { id: string; title: string; date: string }[];
     meetingCount?: number;
   };
 }
+
+// === SVG 아이콘 컴포넌트 ===
+const CalendarIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+    <line x1="16" y1="2" x2="16" y2="6"></line>
+    <line x1="8" y1="2" x2="8" y2="6"></line>
+    <line x1="3" y1="10" x2="21" y2="10"></line>
+  </svg>
+);
 
 // === 헬퍼 함수: 날짜 포맷 ===
 const formatDate = (date: Date) => {
@@ -46,11 +58,11 @@ const formatDate = (date: Date) => {
 
 // === 실시간 상태 판단 로직 ===
 const getStatusBadge = (startStr: string) => {
-  const now = new Date(); // 현재 시간 기준: 2026-04-22 16:49
+  const now = new Date();
   const start = new Date(startStr);
   
   if (start < now) {
-    return { label: "완료", style: "bg-gray-400 text-white" };
+    return { label: "완료", style: "bg-gray-100 text-gray-400 border-gray-200" };
   }
 
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -58,11 +70,14 @@ const getStatusBadge = (startStr: string) => {
   const diffTime = startDate.getTime() - today.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-  if (diffDays === 0) return { label: "D-Day", style: "bg-white text-[#91D148]" };
-  return { label: `D-${diffDays}`, style: "bg-white/20 text-white border border-white/30" };
+  if (diffDays === 0) {
+    return { label: "D-Day", style: "bg-[#91D148] text-white border-[#91D148]" };
+  }
+  
+  return { label: `D-${diffDays}`, style: "bg-[#F4F9ED] text-[#91D148] border border-[#91D148]/20" };
 };
 
-// === 2. 회의 상세 정보 모달 컴포넌트 (원본 유지) ===
+// === 2. 회의 상세 정보 모달 컴포넌트 ===
 const MeetingDetailContent: React.FC<{ 
   meeting: MeetingEvent; 
   onClose: () => void;
@@ -117,7 +132,7 @@ const MeetingDetailContent: React.FC<{
             <div className="space-y-1">
               <span className="text-gray-400 font-bold text-xs">상태 및 성격</span>
               <div className="flex items-center gap-2 mt-1">
-                <span className={`px-3 py-0.5 rounded-full text-[11px] font-black border ${status.label === '완료' ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-[#F4F9ED] text-[#91D148] border-[#91D148]/20'}`}>
+                <span className={`px-3 py-0.5 rounded-full text-[11px] font-black border ${status.style}`}>
                   {status.label}
                 </span>
                 <span className="text-gray-800 font-black text-[15px]">{meeting.extendedProps.nature}</span>
@@ -231,7 +246,11 @@ const MeetingDetailContent: React.FC<{
 // === 3. 메인 캘린더 컴포넌트 ===
 const Calendar: React.FC = () => {
   const calendarRef = useRef<FullCalendar>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   const todayStr = useMemo(() => formatDate(new Date()), []);
+  
+  // 현재 시각 포맷 (HH:mm:00)
   const currentTimeStr = useMemo(() => {
     const now = new Date();
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
@@ -246,17 +265,23 @@ const Calendar: React.FC = () => {
   const { isOpen: isModalOpen, openModal, closeModal } = useModal();
   const hexColors = { Primary: "#4D7CFE", Danger: "#FF6B6B", Warning: "#FF9F43", Success: "#91D148" };
 
+  const updateTitle = () => { if (calendarRef.current) setCalendarTitle(calendarRef.current.getApi().view.title); };
+
+  const refreshCalendar = () => {
+    setCurrentView("dayGridMonth");
+    setSelectedDate(todayStr);
+    setTimeout(() => updateTitle(), 100);
+  };
+
   useEffect(() => {
     const mockData: MeetingEvent[] = [
-      { id: "1", title: "신규 프로젝트 기획 및 UI/UX 방향성 수립 회의", start: "2026-04-25T10:00:00", end: "2026-04-25T11:30:00", extendedProps: { calendar: "Success", projectName: "AI 바라 고도화", projectFullName: "AI 미팅 에이전트 서비스 바라(BARA) 고도화 프로젝트", location: "본사 4층 대회의실 (A-1)", manager: "김철수 팀장", departments: "디지털혁신부", participants: ["김철수", "이영희", "박지민", "최유진"], nature: "정기 주간 회의", duration: "90분", agendas: ["통합 UI 구조 확정", "모바일 앱 메인 탭 구조 변경안 검토"], undecidedAgendas: ["푸시 알림 세부 정책 수립"], materialLink: { title: "UI 기획안_v1.2.pdf", url: "#" }, history: [{ id: "h1", title: "1차 기획 방향성 회의", date: "2026.04.18" }], description: "" } },
+      { id: "1", title: "신규 프로젝트 기획 및 UI/UX 방향성 수립 회의", start: "2026-04-25T10:00:00", end: "2026-04-25T11:30:00", extendedProps: { calendar: "Success", projectName: "AI 바라 고도화", projectFullName: "AI 미팅 에이전트 서비스 바라(BARA) 고도화 프로젝트", location: "본사 4층 대회의실 (A-1)", manager: "김철수 팀장", departments: "디지털혁신부", participants: ["김철수", "이영희", "박지민", "최유진"], nature: "정기 주간 회의", duration: "90분", agendas: ["통합 UI 구조 확정", "모바일 앱 메인 탭 구조 변경안 검토", "사용자 피드백 데이터 분석"], undecidedAgendas: ["푸시 알림 세부 정책 수립"], materialLink: { title: "UI 기획안_v1.2.pdf", url: "#" }, history: [{ id: "h1", title: "1차 기획 방향성 회의", date: "2026.04.18" }], description: "" } },
       { id: "2", title: "바라(BARA) 서비스 디자인 2차 리뷰", start: "2026-04-22T14:00:00", end: "2026-04-22T15:30:00", extendedProps: { calendar: "Primary", projectName: "BARA 디자인", projectFullName: "바라 서비스 아이덴티티 고도화", location: "온라인 (Zoom)", manager: "이영희 수석", departments: "디자인팀", participants: ["이영희", "홍길동", "박지민"], nature: "디자인 리뷰", duration: "90분", agendas: ["컬러 시스템 점검", "아이콘 에셋 최종 점검"], undecidedAgendas: ["다크모드 지원 여부"], materialLink: { title: "디자인 가이드.figma", url: "#" }, history: [], description: "" } }
     ];
     setEvents(mockData);
-    setTimeout(() => updateTitle(), 100);
+    setTimeout(() => refreshCalendar(), 100);
   }, []);
 
-  const updateTitle = () => { if (calendarRef.current) setCalendarTitle(calendarRef.current.getApi().view.title); };
-  
   const projectColorMap = useMemo(() => {
     const map: any = {};
     events.forEach(ev => { if (!map[ev.extendedProps.projectName]) map[ev.extendedProps.projectName] = ev.extendedProps.calendar; });
@@ -266,27 +291,53 @@ const Calendar: React.FC = () => {
   const consistentEvents = useMemo(() => events.map(ev => ({ ...ev, extendedProps: { ...ev.extendedProps, calendar: projectColorMap[ev.extendedProps.projectName] } })), [events, projectColorMap]);
   const projectLegends = useMemo(() => Object.entries(projectColorMap).map(([name, type]: any) => ({ name, type })), [projectColorMap]);
 
+  // 선택된 날짜의 회의 목록
   const dailyMeetings = useMemo(() => {
     return consistentEvents.filter(ev => ev.start.startsWith(selectedDate)).sort((a, b) => a.start.localeCompare(b.start));
   }, [consistentEvents, selectedDate]);
 
-  const handleViewChange = (viewType: string) => {
-    const api = calendarRef.current?.getApi();
-    if (api) {
-      api.today();
-      api.changeView(viewType);
-      setCurrentView(viewType);
-      setSelectedDate(todayStr);
+  // === 다이나믹 스크롤 로직 (DAILY 전용) ===
+  useEffect(() => {
+    if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = 0;
+
+    if (calendarRef.current) {
       updateTitle();
-      if (viewType !== 'dayGridMonth') {
-        setTimeout(() => { api.scrollToTime(currentTimeStr); }, 50);
+      const api = calendarRef.current.getApi();
+
+      if (currentView !== 'dayGridMonth') {
+        let scrollTarget = "09:00:00"; // 기본값
+
+        if (dailyMeetings.length > 0) {
+          // 1순위: 해당 날짜의 첫 회의 시간
+          const firstMeetingStart = dailyMeetings[0].start.split('T')[1];
+          scrollTarget = firstMeetingStart;
+        } else {
+          // 2순위: 회의가 없으면 현재 시각 (단, 업무 범위 내일 때만)
+          const currentHour = new Date().getHours();
+          if (currentHour >= 7 && currentHour <= 23) {
+            scrollTarget = currentTimeStr;
+          }
+        }
+        
+        api.scrollToTime(scrollTarget);
       }
     }
+  }, [currentView, selectedDate, dailyMeetings, currentTimeStr]);
+
+  const handleViewChange = (viewType: string) => {
+    setCurrentView(viewType);
+    setSelectedDate(todayStr); 
   };
 
   const moveDate = (direction: 'prev' | 'next') => {
     const api = calendarRef.current?.getApi();
-    if (api) { direction === 'prev' ? api.prev() : api.next(); updateTitle(); }
+    if (api) { 
+      direction === 'prev' ? api.prev() : api.next(); 
+      // API 이동 후 내부 날짜 상태 동기화
+      const newDate = api.getDate();
+      setSelectedDate(formatDate(newDate));
+      updateTitle(); 
+    }
   };
 
   return (
@@ -296,13 +347,34 @@ const Calendar: React.FC = () => {
         <div className="flex-1 flex flex-col min-w-0 h-full">
           <div className="flex flex-col gap-4 mb-6 px-4 shrink-0">
             <div className="flex justify-between items-center">
-              <div className="flex items-center gap-6">
-                <h2 className="text-[28px] font-black text-gray-900 tracking-tight">{calendarTitle}</h2>
+              {/* 💡 [수정 구역] 왼쪽 네비게이팅 섹션 */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
+                  <h2 
+                    className="text-[28px] font-black text-gray-900 tracking-tight cursor-pointer hover:text-[#91D148] transition-colors"
+                    onClick={refreshCalendar}
+                  >
+                    {calendarTitle}
+                  </h2>
+                  
+                  {/* 💡 메인 타이틀 옆에 DatePicker 및 아이콘 추가 */}
+                  <div className="relative w-8 h-8 flex items-center justify-center text-gray-300 hover:text-[#91D148] transition-colors cursor-pointer group">
+                    <div className="absolute inset-0 opacity-0 z-10 w-full h-full overflow-hidden [&>div]:!w-full [&>div]:!h-full">
+                      <DatePicker 
+                        value={selectedDate} 
+                        onChange={(newVal) => setSelectedDate(newVal)} 
+                      />
+                    </div>
+                    <CalendarIcon />
+                  </div>
+                </div>
+                
                 <div className="flex gap-2">
                   <button onClick={() => moveDate('prev')} className="w-10 h-10 border border-gray-100 rounded-xl bg-white hover:bg-gray-50 flex items-center justify-center font-bold shadow-sm transition-all active:scale-95 text-gray-400 hover:text-gray-800">〈</button>
                   <button onClick={() => moveDate('next')} className="w-10 h-10 border border-gray-100 rounded-xl bg-white hover:bg-gray-50 flex items-center justify-center font-bold shadow-sm transition-all active:scale-95 text-gray-400 hover:text-gray-800">〉</button>
                 </div>
               </div>
+
               <div className="flex bg-white p-1.5 rounded-2xl border border-gray-100 shadow-sm">
                 {[{ label: "MONTHLY", view: "dayGridMonth" }, { label: "WEEKLY", view: "timeGridWeek" }, { label: "DAILY", view: "timeGridDay" }].map((item) => (
                   <button key={item.label} onClick={() => handleViewChange(item.view)} className={`px-6 py-2.5 rounded-xl text-xs font-black transition-all ${currentView === item.view ? "bg-[#91D148] text-white shadow-md shadow-[#91D148]/20" : "text-gray-400 hover:text-gray-600"}`}>{item.label}</button>
@@ -324,39 +396,46 @@ const Calendar: React.FC = () => {
           </div>
 
           <div className="flex-1 bg-white border border-gray-100 rounded-[40px] shadow-sm overflow-hidden flex flex-col relative">
-            <div className={`flex-1 px-8 py-6 ${currentView === 'dayGridMonth' ? 'custom-month-grid' : 'custom-time-grid'}`}>
+            <div ref={scrollContainerRef} className={`flex-1 px-8 py-6 ${currentView === 'dayGridMonth' ? 'custom-month-grid' : 'custom-time-grid'}`}>
               <FullCalendar
+                key={currentView + selectedDate} // 날짜나 뷰가 바뀔 때 인스턴스 초기화로 스크롤 버그 원천 차단
                 ref={calendarRef}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                initialView="dayGridMonth"
+                initialView={currentView}
+                initialDate={selectedDate}
                 locale={koLocale}
                 headerToolbar={false}
                 events={consistentEvents}
                 selectable={true}
-                dateClick={(arg) => setSelectedDate(arg.dateStr)}
+                dateClick={(arg) => {
+                  setSelectedDate(arg.dateStr.split('T')[0]);
+                }}
                 eventClick={(info) => {
-                  if (currentView === "dayGridMonth") {
-                    setSelectedDate(info.event.startStr.split('T')[0]);
-                  } else {
-                    const meeting = consistentEvents.find(e => e.id === info.event.id);
-                    if (meeting) { setSelectedMeeting(meeting); openModal(); }
+                  const meeting = consistentEvents.find(e => e.id === info.event.id);
+                  if (meeting) {
+                    setSelectedDate(meeting.start.split('T')[0]);
+                    if (currentView !== "dayGridMonth") {
+                      setSelectedMeeting(meeting); 
+                      openModal(); 
+                    }
                   }
                 }}
                 eventContent={(arg) => currentView === "dayGridMonth" ? renderMonthEvent(arg) : renderWeekEvent(arg, hexColors)}
                 height={currentView === 'dayGridMonth' ? 'auto' : '100%'}
-                stickyHeaderDates={currentView !== 'dayGridMonth'}
+                stickyHeaderDates={false}
                 dayCellContent={(args) => args.dayNumberText.replace("일", "")}
                 dayCellClassNames={(arg) => formatDate(arg.date) === selectedDate ? 'is-selected' : ''}
                 dayHeaderContent={(args) => {
                   const dateKey = formatDate(args.date);
-                  const isSelected = currentView !== 'dayGridMonth' && dateKey === selectedDate;
+                  const isMonthView = args.view.type === 'dayGridMonth';
+                  const isSelected = !isMonthView && dateKey === selectedDate;
                   const isToday = args.isToday;
                   const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
                   const dayName = dayNames[args.date.getDay()];
                   return (
                     <div className={`calendar-header-cell ${isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''}`} onClick={() => setSelectedDate(dateKey)}>
                       <span className="day-name">{dayName}</span>
-                      {currentView !== 'dayGridMonth' && (
+                      {!isMonthView && (
                         <div className="day-date-circle">
                           <span className="day-date">{args.date.getDate()}</span>
                         </div>
@@ -365,7 +444,7 @@ const Calendar: React.FC = () => {
                   );
                 }}
                 slotMinTime="07:00:00"
-                slotMaxTime="24:00:00"
+                slotMaxTime="24:00:00" 
                 slotDuration="00:30:00"
                 nowIndicator={true}
                 allDaySlot={false}
@@ -382,6 +461,7 @@ const Calendar: React.FC = () => {
                 <div className="px-7 mb-6 flex justify-between items-end shrink-0">
                   <div className="flex flex-col gap-1">
                     <span className="text-[12px] font-black text-[#91D148] uppercase tracking-tighter">Daily Briefing</span>
+                    {/* 💡 [원상 복구] 우측 브리핑 패널은 원본 그대로 유지 */}
                     <span className="text-[22px] font-black text-gray-900 tracking-tight leading-none">{selectedDate.replace(/-/g, '.')}</span>
                   </div>
                   <button onClick={() => setSelectedDate(todayStr)} className="text-[12px] font-bold text-gray-400 hover:text-[#91D148] underline underline-offset-4">오늘로</button>
@@ -423,83 +503,29 @@ const Calendar: React.FC = () => {
       <style>{`
         .fc { font-family: inherit !important; border: none !important; }
         .fc-theme-standard td, .fc-theme-standard th { border: 1px solid #f8f8f8 !important; }
-
         .custom-month-grid { overflow-y: auto !important; height: 100%; }
         .custom-month-grid .fc-scroller { height: auto !important; overflow-y: visible !important; }
-        
         .custom-time-grid { height: 100%; overflow: hidden; display: flex; flex-direction: column; }
         .custom-time-grid .fc-view-harness { flex-grow: 1; }
         .custom-time-grid .fc-scroller { overflow-y: auto !important; height: 100% !important; }
-        
-        /* 헤더 스타일 보정 */
-        .fc .fc-col-header-cell-cushion { padding: 0 !important; width: 100%; }
-
-        .calendar-header-cell { 
-          display: flex; 
-          flex-direction: column; 
-          align-items: center; 
-          gap: 6px; 
-          width: 100%; 
-          padding: 12px 0; 
-          cursor: pointer; 
-          transition: all 0.2s;
-          border: 2px solid transparent;
-        }
+        .fc .fc-col-header { position: sticky !important; top: 0 !important; z-index: 20 !important; background: #fff !important; box-shadow: 0 2px 10px rgba(0,0,0,0.02); width: 100% !important; }
+        .fc .fc-col-header-cell { padding: 0 !important; border: none !important; }
+        .fc .fc-col-header-cell-cushion { padding: 0 !important; width: 100%; display: block !important; }
+        .calendar-header-cell { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; padding: 12px 0; cursor: pointer; transition: all 0.2s; border: 2px solid transparent; background: #fff; }
         .calendar-header-cell .day-name { font-size: 13px; font-weight: 800; color: #bbb; text-transform: uppercase; }
-        .calendar-header-cell .day-date-circle { 
-          width: 36px; 
-          height: 36px; 
-          display: flex; 
-          align-items: center; 
-          justify-content: center; 
-          border-radius: 50%; 
-          transition: all 0.2s; 
-        }
+        .calendar-header-cell .day-date-circle { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.2s; }
         .calendar-header-cell .day-date { font-size: 16px; font-weight: 900; color: #333; }
-        
         .calendar-header-cell.is-today .day-date-circle { background-color: #91D148 !important; }
         .calendar-header-cell.is-today .day-date { color: #fff !important; }
-
-        .calendar-header-cell.is-selected { 
-          border: 2px solid #91D148 !important; 
-          border-radius: 16px;
-          background-color: rgba(145, 209, 72, 0.03);
-          z-index: 2;
-        }
+        .calendar-header-cell.is-selected { border: 2px solid #91D148 !important; border-radius: 16px; background-color: rgba(145, 209, 72, 0.03); z-index: 10; }
         .calendar-header-cell.is-selected .day-name { color: #91D148; }
-
         .fc-daygrid-day.is-selected { box-shadow: inset 0 0 0 2px #91D148 !important; background-color: rgba(145, 209, 72, 0.05) !important; z-index: 2; }
-        .fc-timegrid-slot { height: 55px !important; border-bottom: 1px solid #f9f9f9 !important; }
+        .fc-timegrid-slot { height: 65px !important; border-bottom: 1px solid #f9f9f9 !important; }
         .fc-timegrid-slot-label-cushion { font-size: 11px !important; font-weight: 800 !important; color: #999 !important; }
-
-        /* === 실시간 시간선 (타임라인 결합형 설계) === */
-        .fc-timegrid-now-indicator-container { overflow: visible !important; }
-        .fc-timegrid-now-indicator-line { 
-          border-color: #91D148 !important; 
-          border-top-width: 2px !important; 
-          z-index: 100 !important; 
-          left: -64px !important; 
-          width: calc(100% + 64px) !important;
-          pointer-events: none;
-        }
-        .fc-timegrid-now-indicator-line::before {
-          content: "";
-          position: absolute;
-          left: 0;
-          top: 50%;
-          transform: translateY(-50%);
-          width: 12px;
-          height: 12px;
-          background: #91D148;
-          border-radius: 50%;
-          box-shadow: 0 0 8px rgba(145, 209, 72, 0.4);
-          z-index: 101;
-        }
-        .fc-timegrid-now-indicator-arrow { display: none !important; } 
-
+        .fc-timegrid-now-indicator-line { border-top-width: 2.5px !important; z-index: 100 !important; left: -64px !important; width: calc(100% + 64px) !important; pointer-events: none; }
+        .fc-timegrid-now-indicator-line::before { content: ""; position: absolute; left: -1px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; background: #91D148; border-radius: 50%; box-shadow: 0 0 10px rgba(145, 209, 72, 0.5); z-index: 101; }
         .fc-scroller::-webkit-scrollbar { width: 8px; }
         .fc-scroller::-webkit-scrollbar-thumb { background: #eee; border-radius: 10px; }
-        
         .fc-event { cursor: pointer; border-radius: 12px !important; border: none !important; }
         .animate-fade-in { animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -515,34 +541,130 @@ const renderMonthEvent = (eventInfo: any) => {
   return <div className={`w-full h-6 rounded-md shadow-sm ${colorMap[calendar] || 'bg-gray-400'}`} />;
 };
 
+// === 💡 수정: 일별 관리(DAILY) 전용 최적화 카드 레이아웃 ===
 const renderWeekEvent = (eventInfo: any, hexColors: any) => {
-  const { calendar, projectName } = eventInfo.event.extendedProps;
+  const { 
+    calendar, projectName, location, duration, manager, departments, participants, agendas 
+  } = eventInfo.event.extendedProps;
   const status = getStatusBadge(eventInfo.event.startStr);
-  
   const isCompleted = status.label === '완료';
-  const bgColor = isCompleted ? "#E0E0E0" : (hexColors[calendar as keyof typeof hexColors] || "#91D148");
-  const textColor = isCompleted ? "#9E9E9E" : "white";
+  const projectColor = hexColors[calendar as keyof typeof hexColors] || "#91D148";
   
+  const isDailyView = eventInfo.view.type === 'timeGridDay';
+
+  const startTime = eventInfo.event.start?.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const endTime = eventInfo.event.end?.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+  if (!isDailyView) {
+    // 주별 관리(WEEKLY): 기존 간결 레이아웃
+    return (
+      <div 
+        className={`flex flex-col h-full w-full p-3 gap-2.5 rounded-xl border-l-[6px] shadow-sm overflow-hidden transition-all duration-200 ${
+          isCompleted ? 'bg-gray-50 border-gray-200' : 'bg-white hover:shadow-md border-transparent'
+        }`} 
+        style={{ borderLeftColor: isCompleted ? '#D1D5DB' : projectColor }}
+      >
+        <div className="flex justify-between items-center gap-2">
+          <span className={`px-2 py-0.5 rounded-md text-[10px] font-black whitespace-nowrap shadow-sm border ${status.style}`}>
+            {status.label}
+          </span>
+          <span className="text-[10px] font-bold text-gray-400 truncate uppercase tracking-tighter">
+            {projectName}
+          </span>
+        </div>
+        <div className={`text-[13px] font-black leading-tight line-clamp-2 ${isCompleted ? 'text-gray-400' : 'text-gray-800'}`}>
+          {eventInfo.event.title}
+        </div>
+        <div className="flex items-center gap-1.5 mt-auto">
+          <span className="text-[11px] grayscale opacity-50">📍</span>
+          <span className="text-[11px] font-semibold text-gray-400 truncate">
+            {location}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // 💡 일별 관리(DAILY): 폰트 및 줄간격 최적화 레이아웃
   return (
     <div 
-      className={`flex flex-col h-full w-full p-2.5 gap-1.5 rounded-xl border-l-[6px] shadow-sm overflow-hidden group transition-all ${isCompleted ? '' : 'hover:brightness-95'}`} 
-      style={{ 
-        backgroundColor: bgColor + (isCompleted ? '' : 'E6'), 
-        borderLeftColor: isCompleted ? '#BDBDBD' : 'rgba(0,0,0,0.15)',
-        color: textColor 
-      }}
+      className={`flex flex-col h-full w-full p-3.5 gap-2.5 rounded-[20px] border-l-[6px] shadow-md transition-all duration-200 overflow-y-auto no-scrollbar ${
+        isCompleted ? 'bg-gray-50 border-gray-200' : 'bg-white hover:shadow-lg border-transparent'
+      }`} 
+      style={{ borderLeftColor: isCompleted ? '#D1D5DB' : projectColor }}
     >
-      <div className="flex justify-between items-start gap-2">
-        <span className={`px-2 py-0.5 rounded-md text-[9px] font-black whitespace-nowrap shadow-sm ${status.style}`}>
+      {/* 1. 헤더 (상태 + 프로젝트명) */}
+      <div className="flex justify-between items-center shrink-0">
+        <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-black border shadow-sm ${status.style}`}>
           {status.label}
         </span>
-        <span className={`text-[8px] font-bold opacity-70 truncate uppercase tracking-tighter ${isCompleted ? 'grayscale' : ''}`}>
+        <span className="text-[10.5px] font-black text-gray-400 truncate uppercase tracking-widest">
           {projectName}
         </span>
       </div>
-      <div className={`text-[12px] font-black leading-[1.3] line-clamp-2 ${isCompleted ? 'opacity-60' : 'drop-shadow-sm'}`}>
+
+      {/* 2. 회의 제목 (사이즈 축소 및 줄간격 조정) */}
+      <h4 className={`text-[14.5px] font-black leading-tight shrink-0 ${isCompleted ? 'text-gray-300' : 'text-gray-900'}`}>
         {eventInfo.event.title}
+      </h4>
+
+      {/* 3. 회의 개요 (일시, 소요시간, 장소) */}
+      <div className="grid grid-cols-2 gap-y-2 gap-x-3 py-2.5 border-y border-gray-50 shrink-0">
+        <div className="flex flex-col">
+          <span className="text-[9px] font-bold text-gray-300 uppercase tracking-tighter">일시</span>
+          <p className="text-[11px] font-black text-gray-700 leading-none mt-0.5">{startTime} - {endTime}</p>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[9px] font-bold text-gray-300 uppercase tracking-tighter">시간</span>
+          <p className="text-[11px] font-black text-gray-700 leading-none mt-0.5">{duration}</p>
+        </div>
+        <div className="flex flex-col col-span-2">
+          <span className="text-[9px] font-bold text-gray-300 uppercase tracking-tighter">장소 및 접속 정보</span>
+          <p className="text-[11px] font-black text-gray-700 flex items-center gap-1 leading-none mt-1 truncate">
+            <span className="grayscale opacity-50 text-[10px]">📍</span> {location}
+          </p>
+        </div>
       </div>
+
+      {/* 4. 프로젝트 정보 (PM, 부서, 참여자) */}
+      <div className="flex flex-col gap-2.5 shrink-0">
+        <div className="flex items-center justify-between">
+           <div className="flex flex-col">
+              <span className="text-[9px] font-bold text-gray-300 uppercase tracking-tighter">책임자(PM)</span>
+              <p className="text-[11px] font-black text-gray-800 leading-none mt-0.5">{manager}</p>
+           </div>
+           <div className="flex flex-col text-right">
+              <span className="text-[9px] font-bold text-gray-300 uppercase tracking-tighter">참여 부서</span>
+              <p className="text-[11px] font-black text-gray-800 leading-none mt-0.5">{departments}</p>
+           </div>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[9px] font-bold text-gray-300 uppercase tracking-tighter">참여자 명단</span>
+          <div className="flex flex-wrap gap-1">
+            {participants.map((p: string, i: number) => (
+              <span key={i} className="px-1.5 py-0.5 bg-gray-50 text-gray-500 rounded text-[9.5px] font-bold border border-gray-100 leading-none">
+                {p}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 5. 안건 미리보기 (글자 크기 축소) */}
+      {agendas && agendas.length > 0 && (
+        <div className="pt-2 border-t border-gray-50 shrink-0">
+          <p className="text-[10px] font-black text-[#91D148] mb-1.5 flex items-center gap-1.5">
+            <span className="w-1 h-1 bg-[#91D148] rounded-full" /> 안건 요약
+          </p>
+          <ul className="space-y-1">
+            {agendas.slice(0, 2).map((item: string, i: number) => (
+              <li key={i} className="text-[11px] text-gray-600 font-bold flex gap-1.5 leading-tight truncate">
+                <span className="text-[#91D148] shrink-0">Q.</span> {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };
