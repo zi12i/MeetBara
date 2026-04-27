@@ -29,6 +29,7 @@ import Status from "./pages/Manage/Status";
 import ProjectManement from "./pages/Manage/ProjectManagement";
 import MeetingHistory from "./pages/Meetings/history";
 import MyWorkspace from "./pages/Workspace/MyWorkSpace";
+import GeneralSettings from "./pages/Settings/GeneralSettings";
 
 export default function App() {
   return (
@@ -54,6 +55,7 @@ export default function App() {
 
             {/* Settings */}
             <Route path="/profile" element={<UserProfiles />} />
+            <Route path="/general-settings" element={<GeneralSettings />} />
             <Route path="/template-settings" element={<TemplateSettings />} />
             <Route path="/workspace" element={<Blank />} />
             <Route path="/action-plan" element={<Blank />} /> 
