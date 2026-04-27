@@ -140,22 +140,33 @@ export default function Home() {
           />
           <div ref={upcomingScrollRef} className="flex gap-6 overflow-x-auto no-scrollbar pb-4 -mx-1 px-1 scroll-smooth">
             {filteredUpcoming.length > 0 ? filteredUpcoming.map((item) => (
-              <div key={item.id} className="min-w-[320px] bg-white border border-gray-100 rounded-2xl p-6 shadow-sm flex flex-col justify-between hover:border-[#91D148]/50 transition-all border-l-8 shrink-0" style={{ borderLeftColor: item.borderColor }}>
+              <div 
+                key={item.id} 
+                // 👉 클릭 시 회의 등록 페이지로 이동
+                onClick={() => navigate('/meeting-register')} 
+                className="min-w-[320px] bg-white border border-gray-100 rounded-2xl p-6 shadow-sm flex flex-col justify-between hover:border-[#91D148] hover:shadow-md transition-all border-l-8 shrink-0 cursor-pointer group" 
+                style={{ borderLeftColor: item.borderColor }}
+              >
                 <div>
                   <div className="flex justify-between items-start mb-4">
                     <span className="text-[12px] font-black text-[#91D148] bg-[#F4F9ED] px-2 py-1 rounded">{item.date}</span>
-                    <span className="text-[12px] font-bold text-gray-400">{item.owner}</span>
+                    <span className="text-[12px] font-bold text-gray-400 group-hover:text-[#91D148] transition-colors">{item.owner}</span>
                   </div>
-                  <h4 className="font-black text-gray-800 text-[16px] mb-2 line-clamp-1">{item.title}</h4>
+                  <h4 className="font-black text-gray-800 text-[16px] mb-2 line-clamp-1 group-hover:text-[#91D148] transition-colors">
+                    {item.title}
+                  </h4>
                   <p className="text-[13px] text-gray-500 font-medium">🕒 {item.time}</p>
                   <p className="text-[13px] text-gray-500 font-medium">📍 {item.room}</p>
                 </div>
-                <button className="mt-6 w-full py-2.5 bg-gray-50 text-gray-400 rounded-xl font-bold text-xs cursor-default">대기 중</button>
+                
+                {/* 버튼 텍스트를 '상세 보기' 등으로 변경하여 클릭 유도 가능 */}
+                <button className="mt-6 w-full py-2.5 bg-gray-50 text-gray-400 group-hover:bg-[#F4F9ED] group-hover:text-[#91D148] rounded-xl font-bold text-xs transition-colors">
+                  일정 상세 보기
+                </button>
               </div>
             )) : <EmptyState />}
           </div>
         </section>
-
         {/* 4. 최근 회의 (BOTTOM) */}
         <section className="px-6 mx-auto w-full max-w-(--breakpoint-2xl)">
           <SectionTitle 
