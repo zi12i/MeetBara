@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import PageMeta from "../../components/common/PageMeta";
+import MeetingDetailModal, { Meeting } from "../../components/meetings/MeetingDetailModal";
 import CapybaraZone from "../../components/common/CapybaraZone"; 
 import { createPortal } from "react-dom"; 
 import { useNavigate } from "react-router-dom"; 
@@ -10,13 +11,65 @@ const getTodayStr = () => {
   return `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`;
 };
 
-const recentMeetings = [
-  { id: 1, title: "신규 프로젝트 기획", date: "2026.03.28", members: "김철수, 이영희, 박지민", keywords: "알림센터, 통합구조", content: "공지 중심으로 우선 통합 후 확장...", borderColor: "#91D148" },
-  { id: 2, title: "A/B 테스트 리뷰", date: "2026.03.21", members: "김철수, 이영희", keywords: "CTR, 상승", content: "CTR 기준 B안 15% 상승 확인", borderColor: "#CAE7A7" },
-  { id: 3, title: "UX 성과 지표 정의", date: "2026.03.25", members: "이영희, 최유진", keywords: "체류시간", content: "추가지표(체류시간) 도입 필요", borderColor: "#E2F3CA" },
-  { id: 4, title: "마케팅 캠페인 킥오프", date: "2026.04.05", members: "최유진, 박지민", keywords: "타겟팅, 예산", content: "20대 여성 타겟으로 예산 30% 증액 확정", borderColor: "#91D148" },
-  { id: 5, title: "주말 서버 장애 회고", date: "2026.04.10", members: "김철수, 박지민", keywords: "서버다운, 트래픽", content: "DB 커넥션 풀 부족 문제 해결 완료", borderColor: "#CAE7A7" },
-  { id: 6, title: "디자인 시스템 개편", date: "2026.04.15", members: "이영희, 홍길동", keywords: "컴포넌트, 컬러", content: "프라이머리 컬러 연두색(#91D148) 적용", borderColor: "#E2F3CA" }
+// --- 최근 회의 데이터 (Meeting 타입에 맞춰 보강) ---
+const recentMeetings: Meeting[] = [
+  {
+    id: 1,
+    date: "2026-03-28",
+    title: "신규 프로젝트 기획",
+    projectName: "프로젝트 알파",
+    projectColor: "#91D148",
+    agenda: "알림센터 통합 구조 논의",
+    keywords: ["알림센터", "통합구조"],
+    dayOfWeek: "토",
+    startTime: "14:00",
+    endTime: "15:30",
+    duration: "90분",
+    location: "소회의실 2호",
+    status: "진행 완료",
+    completedTasks: 3,
+    inProgressTasks: 1,
+    overdueTasks: 0,
+    projectFullName: "AI 미팅 에이전트 고도화",
+    owner: "김철수 / PM",
+    department: "기획팀",
+    participants: ["김철수", "이영희", "박지민"],
+    aiSummary: "\"공지 중심으로 우선 통합 후 확장하는 방안으로 확정되었습니다.\"",
+    agendaItems: [{ title: "안건1: 통합 구조 확정", isDone: true }],
+    actionItems: [{ assignee: "김철수", task: "최종 구조도 공유", status: "완료" }],
+    recordingFile: "rec_0328.mp3",
+    referenceDoc: "기획서_v1.pdf",
+    keywordTags: ["#알림센터", "#통합구조"],
+  },
+  // ... (기존 id 2~6번 데이터도 이와 같은 Meeting 형식으로 관리된다고 가정)
+  {
+    id: 2,
+    date: "2026-03-21",
+    title: "A/B 테스트 리뷰",
+    projectName: "프로젝트 베타",
+    projectColor: "#CAE7A7",
+    agenda: "CTR 상승 지표 확인",
+    keywords: ["CTR", "상승"],
+    dayOfWeek: "토",
+    startTime: "10:00",
+    endTime: "11:00",
+    duration: "60분",
+    location: "온라인",
+    status: "진행 완료",
+    completedTasks: 2,
+    inProgressTasks: 0,
+    overdueTasks: 0,
+    projectFullName: "서비스 최적화 프로젝트",
+    owner: "이영희 / PL",
+    department: "데이터분석팀",
+    participants: ["김철수", "이영희"],
+    aiSummary: "\"CTR 기준 B안이 15% 상승하여 최종 채택되었습니다.\"",
+    agendaItems: [{ title: "안건1: 지표 리뷰", isDone: true }],
+    actionItems: [{ assignee: "이영희", task: "B안 배포 설정", status: "완료" }],
+    recordingFile: "rec_0321.mp3",
+    referenceDoc: "리포트.pdf",
+    keywordTags: ["#CTR", "#데이터"],
+  }
 ];
 
 const upcomingMeetings = [
@@ -32,7 +85,7 @@ export default function Home() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [today, setToday] = useState("");
-
+  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const upcomingScrollRef = useRef<HTMLDivElement>(null);
   const recentScrollRef = useRef<HTMLDivElement>(null);
 
@@ -69,7 +122,13 @@ export default function Home() {
     <>
       <PageMeta title="회의바라 - 홈" description="업무 생산성을 위한 똑똑한 AI 회의 파트너" />
       {createPortal(<CapybaraZone />, document.body)}
-      
+      {/* 💡 히스토리 상세 모달 렌더링 */}
+      {selectedMeeting && (
+        <MeetingDetailModal
+          meeting={selectedMeeting}
+          onClose={() => setSelectedMeeting(null)}
+        />
+      )}
       <div className="w-full space-y-12 pb-20 bg-white min-h-screen">
         
         {/* 1. 통합 검색 바 */}
@@ -167,7 +226,7 @@ export default function Home() {
             )) : <EmptyState />}
           </div>
         </section>
-        {/* 4. 최근 회의 (BOTTOM) */}
+        {/* 4. 최근 완료된 회의 (BOTTOM) */}
         <section className="px-6 mx-auto w-full max-w-(--breakpoint-2xl)">
           <SectionTitle 
             title="최근 완료된 회의" 
@@ -178,9 +237,10 @@ export default function Home() {
           <div ref={recentScrollRef} className="flex gap-6 overflow-x-auto no-scrollbar pb-4 -mx-1 px-1 scroll-smooth">
             {filteredRecent.length > 0 ? filteredRecent.map((meeting) => (
               <div key={meeting.id} 
-                onClick={() => navigate(`/meeting/${meeting.id}/result`)}
+                // 👉 리다이렉트 대신 모달 열기로 변경
+                onClick={() => setSelectedMeeting(meeting)}
                 className="min-w-[320px] bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all border-l-8 cursor-pointer shrink-0" 
-                style={{ borderLeftColor: meeting.borderColor }}
+                style={{ borderLeftColor: meeting.projectColor }} // 타입에 맞게 projectColor 사용
               >
                 <div className="bg-gray-50/50 p-4 border-b border-gray-50">
                   <h3 className="font-black text-gray-800 text-[15px] truncate">{meeting.title}</h3>
@@ -188,9 +248,9 @@ export default function Home() {
                 <div className="p-5 space-y-3">
                   <div className="text-[13px] space-y-1.5">
                     <p className="flex text-gray-400 font-bold"><span className="w-16">날짜</span><span className="text-gray-700">{meeting.date}</span></p>
-                    <p className="flex text-gray-400 font-bold"><span className="w-16">키워드</span><span className="text-[#91D148] truncate">{meeting.keywords}</span></p>
+                    <p className="flex text-gray-400 font-bold"><span className="w-16">프로젝트</span><span className="text-[#91D148] truncate">{meeting.projectName}</span></p>
                   </div>
-                  <p className="text-gray-600 text-[13px] line-clamp-2 italic pt-2 border-t border-gray-50">"{meeting.content}"</p>
+                  <p className="text-gray-600 text-[13px] line-clamp-2 italic pt-2 border-t border-gray-50">{meeting.aiSummary}</p>
                 </div>
               </div>
             )) : <EmptyState />}

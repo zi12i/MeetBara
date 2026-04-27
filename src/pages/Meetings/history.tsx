@@ -1,51 +1,9 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import PageMeta from "../../components/common/PageMeta";
 import CapybaraZone from "../../components/common/CapybaraZone";
-import { createPortal } from "react-dom";
-import DatePicker from "../../components/common/DatePicker"; // 💡 커스텀 달력 컴포넌트 임포트
-
-// =============================================
-// 타입 정의
-// =============================================
-interface ActionItem {
-  assignee: string;
-  task: string;
-  status: "진행 중" | "완료" | "지연";
-}
-
-interface Agenda {
-  title: string;
-  isDone: boolean;
-}
-
-interface Meeting {
-  id: number;
-  date: string;
-  title: string;
-  projectName: string;
-  projectColor: string;
-  agenda: string;
-  keywords: string[];
-  dayOfWeek: string;
-  startTime: string;
-  endTime: string;
-  duration: string;
-  location: string;
-  status: "진행 완료" | "진행 중";
-  completedTasks: number;
-  inProgressTasks: number;
-  overdueTasks: number;
-  projectFullName: string;
-  owner: string;
-  department: string;
-  participants: string[];
-  aiSummary: string;
-  agendaItems: Agenda[];
-  actionItems: ActionItem[];
-  recordingFile: string;
-  referenceDoc: string;
-  keywordTags: string[];
-}
+import DatePicker from "../../components/common/DatePicker";
+import MeetingDetailModal, { Meeting } from "../../components/meetings/MeetingDetailModal";
 
 // =============================================
 // 더미 데이터
@@ -467,205 +425,8 @@ const DUMMY_MEETINGS: Meeting[] = [
 ];
 
 const PAGE_SIZE = 10;
-
-const statusColor = (status: ActionItem["status"]) => {
-  if (status === "완료") return "bg-[#C8E6A5]/70 text-[#4d7222]";
-  if (status === "지연") return "bg-red-100 text-red-600";
-  return "bg-blue-100 text-blue-600";
-};
-
 const PROJECT_NAMES = [...new Set(DUMMY_MEETINGS.map((m) => m.projectName))];
 
-// =============================================
-// 모달 컴포넌트
-// =============================================
-const MeetingDetailModal: React.FC<{
-  meeting: Meeting;
-  onClose: () => void;
-}> = ({ meeting, onClose }) => {
-  return (
-    <div
-      className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-[2px]"
-      onClick={onClose}
-    >
-      {createPortal(<CapybaraZone />, document.body)}
-      <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-[860px] max-h-[90vh] overflow-y-auto mx-4 animate-fade-in"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* 헤더 */}
-        <div
-          className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10"
-          style={{ borderLeft: `4px solid ${meeting.projectColor}` }}
-        >
-          <div>
-            <p className="text-[11px] font-bold text-gray-400 mb-1">{meeting.projectName}</p>
-            <h2 className="text-[18px] font-black text-gray-900">{meeting.title}</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-700 text-[18px] font-bold"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="p-6 flex flex-col gap-5">
-
-          {/* 기본 정보 */}
-          <div className="border border-gray-200 rounded-xl p-4">
-            <p className="text-[12px] font-black text-gray-400 mb-3 uppercase tracking-wide">기본 정보</p>
-            <div className="grid grid-cols-2 gap-3 text-[13px]">
-              <div>
-                <span className="text-gray-400 font-bold">일시</span>
-                <p className="text-gray-800 font-bold mt-0.5">
-                  {meeting.date} ({meeting.dayOfWeek}) {meeting.startTime}~{meeting.endTime} ({meeting.duration})
-                </p>
-              </div>
-              <div>
-                <span className="text-gray-400 font-bold">장소</span>
-                <p className="text-gray-800 font-bold mt-0.5">{meeting.location}</p>
-              </div>
-              <div>
-                <span className="text-gray-400 font-bold">상태</span>
-                <p className="mt-0.5">
-                  <span className="inline-block px-2 py-0.5 bg-[#C8E6A5]/60 text-[#4d7222] rounded-full text-[11px] font-bold">
-                    {meeting.status}
-                  </span>
-                </p>
-              </div>
-              <div>
-                <span className="text-gray-400 font-bold">이행 현황</span>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="inline-block px-2 py-0.5 bg-[#C8E6A5]/60 text-[#4d7222] rounded-full text-[11px] font-bold">
-                    완료 {meeting.completedTasks}
-                  </span>
-                  <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full text-[11px] font-bold">
-                    진행중 {meeting.inProgressTasks}
-                  </span>
-                  {meeting.overdueTasks > 0 && (
-                    <span className="inline-block px-2 py-0.5 bg-red-100 text-red-500 rounded-full text-[11px] font-bold">
-                      지연 {meeting.overdueTasks}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 프로젝트 정보 */}
-          <div className="border border-gray-200 rounded-xl p-4">
-            <p className="text-[12px] font-black text-gray-400 mb-3 uppercase tracking-wide">프로젝트 정보</p>
-            <div className="grid grid-cols-2 gap-3 text-[13px]">
-              <div>
-                <span className="text-gray-400 font-bold">프로젝트명</span>
-                <p className="text-gray-800 font-bold mt-0.5">{meeting.projectFullName}</p>
-              </div>
-              <div>
-                <span className="text-gray-400 font-bold">책임자</span>
-                <p className="text-gray-800 font-bold mt-0.5">{meeting.owner}</p>
-              </div>
-              <div>
-                <span className="text-gray-400 font-bold">참여 부서</span>
-                <p className="text-gray-800 font-bold mt-0.5">{meeting.department}</p>
-              </div>
-              <div>
-                <span className="text-gray-400 font-bold">참여자</span>
-                <div className="flex flex-wrap gap-1 mt-0.5">
-                  {meeting.participants.map((p) => (
-                    <span
-                      key={p}
-                      className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-[11px] font-bold"
-                    >
-                      {p}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* AI 회의 요약 */}
-          <div className="border border-[#91D148]/30 bg-[#F4F9ED]/50 rounded-xl p-4">
-            <p className="text-[12px] font-black text-[#4d7222] mb-2 uppercase tracking-wide">AI 회의 요약</p>
-            <p className="text-[13px] text-gray-700 font-bold leading-relaxed">{meeting.aiSummary}</p>
-          </div>
-
-          {/* 주요 안건 + 파생 액션아이템 */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="border border-gray-200 rounded-xl p-4">
-              <p className="text-[12px] font-black text-gray-400 mb-3 uppercase tracking-wide">주요안건 및 결정사항</p>
-              <div className="flex flex-col gap-2">
-                {meeting.agendaItems.map((item, i) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <div
-                      className={`mt-0.5 w-4 h-4 rounded flex-shrink-0 flex items-center justify-center text-[10px] font-black border ${
-                        item.isDone
-                          ? "bg-[#91D148] border-[#91D148] text-white"
-                          : "border-gray-300 text-transparent"
-                      }`}
-                    >
-                      ✓
-                    </div>
-                    <p className={`text-[12px] leading-relaxed ${item.isDone ? "text-gray-700" : "text-gray-400"}`}>
-                      {item.title}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="border border-gray-200 rounded-xl p-4">
-              <p className="text-[12px] font-black text-gray-400 mb-3 uppercase tracking-wide">파생 액션아이템 및 이행 현황</p>
-              <div className="flex flex-col gap-2">
-                {meeting.actionItems.map((item, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <span
-                      className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-black flex-shrink-0 ${statusColor(item.status)}`}
-                    >
-                      {item.assignee}
-                    </span>
-                    <p className="text-[12px] text-gray-600 leading-relaxed">{item.task}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 pt-3 border-t border-gray-100">
-                <p className="text-[11px] font-black text-gray-400 mb-1.5">관련 자료 및 키워드</p>
-                <div className="flex items-center gap-1 mb-1">
-                  <span className="text-[11px] text-gray-400">🎵</span>
-                  <span className="text-[11px] text-[#4d7222] font-bold underline cursor-pointer">
-                    {meeting.recordingFile}
-                  </span>
-                </div>
-                {meeting.referenceDoc && (
-                  <div className="flex items-center gap-1 mb-2">
-                    <span className="text-[11px] text-gray-400">📎</span>
-                    <span className="text-[11px] text-gray-500 font-bold">{meeting.referenceDoc}</span>
-                  </div>
-                )}
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {meeting.keywordTags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="inline-block px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-[11px] font-bold"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// =============================================
-// 메인 컴포넌트
-// =============================================
 const MeetingHistory: React.FC = () => {
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
@@ -680,23 +441,13 @@ const MeetingHistory: React.FC = () => {
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [showProjectDropdown, setShowProjectDropdown] = useState<boolean>(false);
 
-  // ── 종료일이 시작일보다 이전인지 체크 ──
-  const isDateRangeInvalid =
-    dateFrom !== "" && dateTo !== "" && dateTo < dateFrom;
+  const isDateRangeInvalid = dateFrom !== "" && dateTo !== "" && dateTo < dateFrom;
 
-  // ── 검색 ──
   const handleSearch = () => {
-    // 날짜 범위가 잘못됐으면 실행 안 함
     if (isDateRangeInvalid) return;
-
     let filtered = [...DUMMY_MEETINGS];
-
-    // 시작일만 있으면 → 시작일 이후 전체
     if (dateFrom) filtered = filtered.filter((m) => m.date >= dateFrom);
-
-    // 종료일만 있으면 → 종료일까지 전체
     if (dateTo) filtered = filtered.filter((m) => m.date <= dateTo);
-
     if (projectName.trim()) {
       filtered = filtered.filter((m) => m.projectName.includes(projectName.trim()));
     }
@@ -710,13 +461,11 @@ const MeetingHistory: React.FC = () => {
           m.keywords.some((k) => k.includes(keyword.trim()))
       );
     }
-
     filtered.sort((a, b) => (a.date < b.date ? 1 : -1));
     setResults(filtered);
     setCurrentPage(1);
   };
 
-  // ── 페이지네이션 ──
   const totalPages = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
   const pagedResults = results.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
@@ -727,11 +476,7 @@ const MeetingHistory: React.FC = () => {
     } else {
       pages.push(1);
       if (currentPage > 3) pages.push("...");
-      for (
-        let i = Math.max(2, currentPage - 1);
-        i <= Math.min(totalPages - 1, currentPage + 1);
-        i++
-      ) {
+      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
         pages.push(i);
       }
       if (currentPage < totalPages - 2) pages.push("...");
@@ -746,9 +491,10 @@ const MeetingHistory: React.FC = () => {
 
   return (
     <>
-     {createPortal(<CapybaraZone />, document.body)}
+      {createPortal(<CapybaraZone />, document.body)}
       <PageMeta title="히스토리 - 회의 관리" description="과거 회의 데이터를 확인할 수 있습니다." />
 
+      {/* 💡 분리된 모달 컴포넌트 호출 */}
       {selectedMeeting && (
         <MeetingDetailModal
           meeting={selectedMeeting}
@@ -757,47 +503,21 @@ const MeetingHistory: React.FC = () => {
       )}
 
       <div className="flex flex-col h-full w-full bg-white p-8 overflow-hidden">
-
         {/* 검색 조건 박스 */}
         <div className="border border-gray-200 rounded-xl p-5 mb-4 shrink-0 bg-white shadow-sm">
           <p className="text-[13px] font-bold text-gray-700 mb-4">검색 조건</p>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-
             {/* 기간 */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[12px] font-bold text-gray-500">기간</label>
               <div className="flex items-center gap-2">
-                
-                {/* 💡 DatePicker 교체 완료 */}
-                <DatePicker
-                  value={dateFrom}
-                  onChange={setDateFrom}
-                  placeholder="시작일 선택"
-                />
-                
+                <DatePicker value={dateFrom} onChange={setDateFrom} placeholder="시작일 선택" />
                 <span className="text-gray-400 text-[12px] flex-shrink-0 font-bold">~</span>
-                
-                {/* 💡 DatePicker 교체 완료 및 화면 잘림 방지 (alignRight) 추가 */}
-                <DatePicker
-                  value={dateTo}
-                  onChange={setDateTo}
-                  placeholder="종료일 선택"
-                  isInvalid={isDateRangeInvalid}
-                  alignRight={true}
-                />
-                
+                <DatePicker value={dateTo} onChange={setDateTo} placeholder="종료일 선택" isInvalid={isDateRangeInvalid} alignRight={true} />
               </div>
-
-              {/* 날짜 오류 경고 문구 */}
-              {isDateRangeInvalid && (
-                <p className="text-[11px] text-red-500 font-bold mt-0.5">
-                  ⚠ 종료일은 시작일 이후 날짜로 선택해주세요.
-                </p>
-              )}
+              {isDateRangeInvalid && <p className="text-[11px] text-red-500 font-bold mt-0.5">⚠ 종료일은 시작일 이후 날짜로 선택해주세요.</p>}
             </div>
-
-            {/* 프로젝트명 — 드롭다운 */}
+            {/* 프로젝트명 */}
             <div className="flex flex-col gap-1.5 relative">
               <label className="text-[12px] font-bold text-gray-500">프로젝트명</label>
               <div className="relative flex items-center">
@@ -805,86 +525,39 @@ const MeetingHistory: React.FC = () => {
                   type="text"
                   placeholder="프로젝트를 선택하세요"
                   value={projectName}
-                  onChange={(e) => {
-                    setProjectName(e.target.value);
-                    setShowProjectDropdown(true);
-                  }}
+                  onChange={(e) => { setProjectName(e.target.value); setShowProjectDropdown(true); }}
                   onFocus={() => setShowProjectDropdown(true)}
                   onBlur={() => setTimeout(() => setShowProjectDropdown(false), 150)}
                   className="w-full h-9 px-3 pr-8 text-[12px] border border-gray-300 rounded-md text-gray-700 placeholder-gray-300 focus:outline-none focus:border-[#91D148]"
                 />
-                <svg
-                  className="absolute right-2.5 w-3.5 h-3.5 text-gray-400 pointer-events-none"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <svg className="absolute right-2.5 w-3.5 h-3.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
               {showProjectDropdown && filteredProjects.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
                   {filteredProjects.map((name) => (
-                    <button
-                      key={name}
-                      onMouseDown={() => {
-                        setProjectName(name);
-                        setShowProjectDropdown(false);
-                      }}
-                      className="w-full text-left px-3 py-2 text-[12px] text-gray-700 hover:bg-[#F4F9ED] hover:text-[#4d7222] font-bold transition-colors flex items-center gap-2"
-                    >
-                      <div
-                        className="w-2 h-2 rounded-full flex-shrink-0"
-                        style={{
-                          backgroundColor: DUMMY_MEETINGS.find((m) => m.projectName === name)?.projectColor,
-                        }}
-                      />
-                        {name}
+                    <button key={name} onMouseDown={() => { setProjectName(name); setShowProjectDropdown(false); }} className="w-full text-left px-3 py-2 text-[12px] text-gray-700 hover:bg-[#F4F9ED] hover:text-[#4d7222] font-bold transition-colors flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: DUMMY_MEETINGS.find((m) => m.projectName === name)?.projectColor }} />
+                      {name}
                     </button>
                   ))}
                 </div>
               )}
             </div>
-
             {/* 안건 */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[12px] font-bold text-gray-500">안건</label>
-              <input
-                type="text"
-                placeholder="해당 란에 작성하십시오"
-                value={agenda}
-                onChange={(e) => setAgenda(e.target.value)}
-                className="h-9 px-3 text-[12px] border border-gray-300 rounded-md text-gray-700 placeholder-gray-300 focus:outline-none focus:border-[#91D148]"
-              />
+              <input type="text" placeholder="해당 란에 작성하십시오" value={agenda} onChange={(e) => setAgenda(e.target.value)} className="h-9 px-3 text-[12px] border border-gray-300 rounded-md text-gray-700 placeholder-gray-300 focus:outline-none focus:border-[#91D148]" />
             </div>
-
             {/* 키워드 */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[12px] font-bold text-gray-500">키워드</label>
-              <input
-                type="text"
-                placeholder="해당 란에 작성하십시오"
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
-                className="h-9 px-3 text-[12px] border border-gray-300 rounded-md text-gray-700 placeholder-gray-300 focus:outline-none focus:border-[#91D148]"
-              />
+              <input type="text" placeholder="해당 란에 작성하십시오" value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }} className="h-9 px-3 text-[12px] border border-gray-300 rounded-md text-gray-700 placeholder-gray-300 focus:outline-none focus:border-[#91D148]" />
             </div>
           </div>
-
-          {/* 검색 버튼 */}
           <div className="flex justify-end">
-            <button
-              onClick={handleSearch}
-              disabled={isDateRangeInvalid}
-              className={`px-10 py-2 rounded-md font-bold text-[13px] transition-colors shadow-sm ${
-                isDateRangeInvalid
-                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                  : "bg-[#C8E6A5] text-[#4d7222] hover:bg-[#b8dd8d]"
-              }`}
-            >
-              검색
-            </button>
+            <button onClick={handleSearch} disabled={isDateRangeInvalid} className={`px-10 py-2 rounded-md font-bold text-[13px] transition-colors shadow-sm ${isDateRangeInvalid ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-[#C8E6A5] text-[#4d7222] hover:bg-[#b8dd8d]"}`}>검색</button>
           </div>
         </div>
 
@@ -903,44 +576,15 @@ const MeetingHistory: React.FC = () => {
               </thead>
               <tbody>
                 {pagedResults.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-20 text-gray-400 text-[13px] font-bold">
-                      검색 결과가 없습니다.
-                    </td>
-                  </tr>
+                  <tr><td colSpan={5} className="text-center py-20 text-gray-400 text-[13px] font-bold">검색 결과가 없습니다.</td></tr>
                 ) : (
                   pagedResults.map((meeting, idx) => (
-                    <tr
-                      key={meeting.id}
-                      onClick={() => setSelectedMeeting(meeting)}
-                      className={`border-b border-gray-100 hover:bg-[#F4F9ED]/60 transition-colors cursor-pointer select-none ${
-                        idx % 2 === 0 ? "bg-white" : "bg-gray-50/50"
-                      }`}
-                    >
+                    <tr key={meeting.id} onClick={() => setSelectedMeeting(meeting)} className={`border-b border-gray-100 hover:bg-[#F4F9ED]/60 transition-colors cursor-pointer select-none ${idx % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}>
                       <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{meeting.date}</td>
                       <td className="px-4 py-3 font-bold text-gray-800">{meeting.title}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5">
-                          <div
-                            className="w-2 h-2 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: meeting.projectColor }}
-                          />
-                          <span className="text-gray-600">{meeting.projectName}</span>
-                        </div>
-                      </td>
+                      <td className="px-4 py-3"><div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: meeting.projectColor }} /><span className="text-gray-600">{meeting.projectName}</span></div></td>
                       <td className="px-4 py-3 text-gray-600">{meeting.agenda}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1">
-                          {meeting.keywords.map((k) => (
-                            <span
-                              key={k}
-                              className="inline-block px-2 py-0.5 bg-[#C8E6A5]/60 text-[#4d7222] rounded-full text-[11px] font-bold"
-                            >
-                              {k}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
+                      <td className="px-4 py-3"><div className="flex flex-wrap gap-1">{meeting.keywords.map((k) => (<span key={k} className="inline-block px-2 py-0.5 bg-[#C8E6A5]/60 text-[#4d7222] rounded-full text-[11px] font-bold">{k}</span>))}</div></td>
                     </tr>
                   ))
                 )}
@@ -948,54 +592,16 @@ const MeetingHistory: React.FC = () => {
             </table>
           </div>
         </div>
-
-        {/* 안내 문구 */}
-        <p className="text-center text-[11px] text-gray-300 mt-2 shrink-0">
-          행을 클릭하면 회의 상세 내용을 볼 수 있습니다
-        </p>
-
+        <p className="text-center text-[11px] text-gray-300 mt-2 shrink-0">행을 클릭하면 회의 상세 내용을 볼 수 있습니다</p>
+        
         {/* 페이지네이션 */}
         {results.length > 0 && (
           <div className="flex justify-center items-center gap-1 mt-3 shrink-0">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:bg-[#F4F9ED] disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-[13px] font-bold"
-            >
-              ‹
-            </button>
-            {getPageNumbers().map((p, i) =>
-              p === "..." ? (
-                <span
-                  key={`dots-${i}`}
-                  className="w-8 h-8 flex items-center justify-center text-gray-400 text-[13px]"
-                >
-                  ...
-                </span>
-              ) : (
-                <button
-                  key={p}
-                  onClick={() => setCurrentPage(Number(p))}
-                  className={`w-8 h-8 flex items-center justify-center rounded-md text-[13px] font-bold transition-colors border ${
-                    currentPage === p
-                      ? "bg-[#91D148] text-white border-[#91D148] shadow-sm"
-                      : "border-gray-200 text-gray-600 hover:bg-[#F4F9ED]"
-                  }`}
-                >
-                  {p}
-                </button>
-              )
-            )}
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:bg-[#F4F9ED] disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-[13px] font-bold"
-            >
-              ›
-            </button>
+            <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:bg-[#F4F9ED] disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-[13px] font-bold">‹</button>
+            {getPageNumbers().map((p, i) => p === "..." ? <span key={`dots-${i}`} className="w-8 h-8 flex items-center justify-center text-gray-400 text-[13px]">...</span> : <button key={p} onClick={() => setCurrentPage(Number(p))} className={`w-8 h-8 flex items-center justify-center rounded-md text-[13px] font-bold transition-colors border ${currentPage === p ? "bg-[#91D148] text-white border-[#91D148] shadow-sm" : "border-gray-200 text-gray-600 hover:bg-[#F4F9ED]"}`}>{p}</button>)}
+            <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:bg-[#F4F9ED] disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-[13px] font-bold">›</button>
           </div>
         )}
-
       </div>
     </>
   );
