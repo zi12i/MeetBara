@@ -62,6 +62,7 @@ const LiveMeeting: React.FC = () => {
   const [selectedSpeaker, setSelectedSpeaker] = useState("");
   const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
 
+  // 깨끗한 상태로 초기화 (더미 데이터 제거 완료)
   const [meetingTitle, setMeetingTitle] = useState("새로운 회의");
   const [meetingDate, setMeetingDate] = useState(new Date().toLocaleString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }));
   const [meetingMembers, setMeetingMembers] = useState<string[]>([]);
@@ -71,6 +72,7 @@ const LiveMeeting: React.FC = () => {
   const [meetingKeywords, setMeetingKeywords] = useState<string[]>([]);
   const [meetingLogs, setMeetingLogs] = useState<MeetingLog[]>([]);
 
+  // 발화자 수정 모드 구분용 (일괄 vs 개별)
   const [speakerEditMode, setSpeakerEditMode] = useState<'bulk' | 'single'>('bulk');
   const [editingScriptId, setEditingScriptId] = useState<number | null>(null);
 
@@ -379,7 +381,6 @@ const LiveMeeting: React.FC = () => {
         </div>
       ) : (
         <div className="flex flex-col lg:flex-row gap-6 h-screen bg-white overflow-hidden relative p-6">
-          
           <div className="flex-1 flex flex-col gap-6 p-4 overflow-hidden">
             <div className={`rounded-2xl p-6 space-y-4 shadow-sm border transition-colors duration-500 ${isDeviationDetected ? 'bg-red-50 border-red-200' : 'bg-[#F4F9ED] border-[#91D148]/10'} shrink-0`}>
               <div className="flex items-center justify-between">
@@ -464,7 +465,6 @@ const LiveMeeting: React.FC = () => {
                   {liveScript.length > 0 ? liveScript.map((item) => (
                     <div key={item.id} className="group relative space-y-2 animate-fade-in-up">
                       <div className="absolute -left-[21px] top-2 w-3 h-3 bg-white border-2 border-gray-200 rounded-full group-hover:border-[#91D148] transition-colors"></div>
-                      
                       <button 
                         onClick={() => {
                           setSpeakerEditMode('single');
@@ -477,7 +477,6 @@ const LiveMeeting: React.FC = () => {
                         {item.user}
                         <svg className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-[#91D148]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                       </button>
-
                       <div className="text-[15px] text-gray-600 leading-relaxed bg-gray-50/50 p-4 rounded-2xl group-hover:bg-[#F4F9ED]/60 transition-all">{item.text}</div>
                     </div>
                   )) : (
@@ -531,7 +530,6 @@ const LiveMeeting: React.FC = () => {
                   </button>
                 ))}
               </div>
-
               {activeSideTab === "keyword-search" && (
                 <div className="space-y-4 animate-fade-in">
                   <div className="relative group">
@@ -585,7 +583,6 @@ const LiveMeeting: React.FC = () => {
                         </div>
                       </div>
                     ))}
-                    
                     {isBaraTyping && (
                       <div className="flex flex-col items-start animate-fade-in mt-2">
                         <span className="text-[11px] font-black text-[#91D148] mb-1 ml-1">BARA 🐹</span>
@@ -611,11 +608,7 @@ const LiveMeeting: React.FC = () => {
                         disabled={isBaraTyping}
                         className="w-full bg-white border-2 border-[#91D148]/30 rounded-2xl py-3 pl-4 pr-12 text-sm font-bold focus:border-[#91D148] outline-none shadow-sm disabled:bg-gray-50" 
                       />
-                      <button 
-                        onClick={handleSendMessage} 
-                        disabled={isBaraTyping}
-                        className="absolute right-1.5 w-9 h-9 bg-[#91D148] text-white rounded-xl flex items-center justify-center hover:bg-[#82bd41] shadow-sm disabled:bg-gray-300 transition-colors"
-                      >
+                      <button onClick={handleSendMessage} disabled={isBaraTyping} className="absolute right-1.5 w-9 h-9 bg-[#91D148] text-white rounded-xl flex items-center justify-center hover:bg-[#82bd41] shadow-sm disabled:bg-gray-300 transition-colors">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
                       </button>
                     </div>
@@ -629,14 +622,7 @@ const LiveMeeting: React.FC = () => {
                         <div className="w-10 h-10 bg-[#F4F9ED] rounded-full flex items-center justify-center text-[#91D148] font-bold">🔊</div>
                         <span className="font-bold text-gray-800 text-[15px]">{speakerName}</span>
                       </div>
-                      <button 
-                        onClick={() => { 
-                          setSpeakerEditMode('bulk'); 
-                          setSelectedSpeaker(speakerName); 
-                          setIsModalOpen(true); 
-                        }} 
-                        className="p-2 text-gray-400 hover:text-[#91D148] transition-colors"
-                      >
+                      <button onClick={() => { setSpeakerEditMode('bulk'); setSelectedSpeaker(speakerName); setIsModalOpen(true); }} className="p-2 text-gray-400 hover:text-[#91D148] transition-colors">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                       </button>
                     </div>
@@ -651,7 +637,6 @@ const LiveMeeting: React.FC = () => {
       )}
       
       <MemberAddModal isOpen={isMemberModalOpen} onClose={() => setIsMemberModalOpen(false)} onAdd={handleAddMembers} />
-      
       <SpeakerEditModal 
         isOpen={isModalOpen} 
         onClose={() => { setIsModalOpen(false); setEditingScriptId(null); }} 
@@ -666,7 +651,6 @@ const LiveMeeting: React.FC = () => {
           <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"></div>
           <div className="relative bg-white rounded-[24px] p-10 w-[420px] shadow-2xl text-center animate-fade-in">
             <h2 className="text-[20px] font-black text-gray-900 mb-4">녹음을 종료하시겠습니까?</h2>
-            
             {unresolvedAgendasCount > 0 ? (
               <div className="mb-8">
                 <p className="text-[14px] font-black text-red-500 mb-2 flex items-center justify-center gap-1">
@@ -682,14 +666,8 @@ const LiveMeeting: React.FC = () => {
                 모든 안건이 성공적으로 완료되었습니다! 🎉<br />종료 후 회의록이 자동으로 생성됩니다.
               </p>
             )}
-
             <div className="flex gap-3">
-              <button 
-                onClick={() => setIsStopModalOpen(false)} 
-                className="flex-1 py-3.5 bg-[#F1F3F5] text-[#495057] font-bold rounded-xl hover:bg-gray-200 transition-all"
-              >
-                아니오
-              </button>
+              <button onClick={() => setIsStopModalOpen(false)} className="flex-1 py-3.5 bg-[#F1F3F5] text-[#495057] font-bold rounded-xl hover:bg-gray-200 transition-all">아니오</button>
               <button 
                 onClick={() => { 
                   setIsStopModalOpen(false); 
@@ -700,9 +678,7 @@ const LiveMeeting: React.FC = () => {
                   setIsToastVisible(true);
                 }} 
                 className="flex-1 py-3.5 bg-[#91D148] text-white font-bold rounded-xl hover:bg-[#82bd41] transition-all shadow-md"
-              >
-                네, 종료합니다
-              </button>
+              >네, 종료합니다</button>
             </div>
           </div>
         </div>
@@ -717,12 +693,7 @@ const LiveMeeting: React.FC = () => {
               회의를 마무리하고 하단의 <strong className="text-red-500">[녹음 종료]</strong> 버튼을<br />직접 눌러 회의록을 생성해 주세요.
             </p>
             <div className="flex justify-center">
-              <button 
-                onClick={() => setIsCarryOverModalOpen(false)} 
-                className="w-full py-3.5 bg-[#91D148] text-white font-bold rounded-xl hover:bg-[#82bd41] shadow-[0_4px_12px_rgba(145,209,72,0.3)] transition-all"
-              >
-                확 인
-              </button>
+              <button onClick={() => setIsCarryOverModalOpen(false)} className="w-full py-3.5 bg-[#91D148] text-white font-bold rounded-xl hover:bg-[#82bd41] shadow-[0_4px_12px_rgba(145,209,72,0.3)] transition-all">확 인</button>
             </div>
           </div>
         </div>
