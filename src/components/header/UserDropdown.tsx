@@ -36,7 +36,7 @@ export default function UserDropdown() {
 
         {/* 2. 사용자 정보 텍스트 [cite: 324] */}
         <span className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-          김효겸 / 부장 / 프로젝트 관리팀
+          김바라 / 부장 / 프로젝트 관리팀
         </span>
 
         {/* 3. 우측 쉐브론 화살표 아이콘 [cite: 325] */}
@@ -68,10 +68,10 @@ export default function UserDropdown() {
       >
         <div className="px-3 py-2">
           <span className="block font-semibold text-gray-800 text-theme-sm dark:text-white">
-            김효겸 부장
+            김바라 부장
           </span>
           <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
-            hyogyeom.kim@barabara.co.kr
+            bara.kim@meetbara.com
           </span>
         </div>
 

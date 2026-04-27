@@ -35,7 +35,7 @@ const LiveMeeting: React.FC = () => {
   const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
   const [meetingMembers, setMeetingMembers] = useState(["김철수", "이영희", "박지민"]);
 
-  // ★ 신규 상태: 발화자 수정 모드 구분용 (일괄 vs 개별)
+  // 발화자 수정 모드 구분용 (일괄 vs 개별)
   const [speakerEditMode, setSpeakerEditMode] = useState<'bulk' | 'single'>('bulk');
   const [editingScriptId, setEditingScriptId] = useState<number | null>(null);
 
@@ -84,7 +84,7 @@ const LiveMeeting: React.FC = () => {
 
   const activeSpeakers = Array.from(new Set(liveScript.map(script => script.user)));
 
-const fullSummary = [
+  const fullSummary = [
     { time: 1, title: "회의 시작 및 도입", content: ["주간 정기 회의 개시", "메인 피드 레이아웃 검토 시작"] },
     { time: 15, title: "안건 1: 메인 피드 레이아웃 결정", content: ["공지 섹션 중심 우선 통합 합의"] },
     { time: 25, title: "안건 2: 알림센터 통합 설계", content: ["초기 도입 시 옵셔널 전환 방식 채택", "팝업을 통한 설정 유도"] },
@@ -98,7 +98,6 @@ const fullSummary = [
   ];
   const filteredLogs = mockMeetingLogs.filter(log => log.title.includes(searchTerm) || log.keywords.some(k => k.includes(searchTerm)));
 
-
   const emitBara = (scenarioId: string, progress?: number, customMessage?: string, timeLeft?: string) => {
       const event = new CustomEvent('UPDATE_BARA', { 
         detail: { scenarioId, progress, customMessage, timeLeft } 
@@ -106,15 +105,12 @@ const fullSummary = [
       window.dispatchEvent(event);
     }
 
-  // ★ 수정됨: 모달 저장 시 분기 처리 (일괄 vs 개별)
   const handleSpeakerChange = (newName: string) => {
     if (speakerEditMode === 'bulk') {
-      // 일괄 변경: 해당 이름 전체를 교체
       setLiveScript(prev => prev.map(script => 
         script.user === selectedSpeaker ? { ...script, user: newName } : script
       ));
     } else if (speakerEditMode === 'single' && editingScriptId !== null) {
-      // 개별 변경: 클릭했던 딱 그 한 줄만 교체!
       setLiveScript(prev => prev.map(script => 
         script.id === editingScriptId ? { ...script, user: newName } : script
       ));
@@ -138,82 +134,82 @@ const fullSummary = [
     return () => clearInterval(interval);
   }, [isRecording]);
 
-// === 💡 강화된 시연용 가상 시간(빨리감기) 계산기 ===
-useEffect(() => {
-  const completedCount = agendas.filter(a => a.isCompleted).length;
-  const progress = Math.floor((completedCount / agendas.length) * 100);
-  
-  const getVirtualTimeLeft = (sec: number) => {
-    // 65초 이상: 종료
-    if (sec >= 65) return "00:00";
+  // === 💡 강화된 시연용 가상 시간(빨리감기) 계산기 및 시나리오 트리거 ===
+  useEffect(() => {
+    const completedCount = agendas.filter(a => a.isCompleted).length;
+    const progress = Math.floor((completedCount / agendas.length) * 100);
     
-    // 55~64초: 3분(180초)부터 역산
-    if (sec >= 55) {
-      const remain = 180 - (sec - 55);
+    const getVirtualTimeLeft = (sec: number) => {
+      if (sec >= 65) return "00:00";
+      if (sec >= 55) {
+        const remain = 180 - (sec - 55);
+        const m = Math.floor(remain / 60);
+        const s = remain % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+      }
+      if (sec >= 48) {
+        const remain = 300 - (sec - 48);
+        const m = Math.floor(remain / 60);
+        const s = remain % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+      }
+      if (sec >= 40) {
+        const remain = 600 - (sec - 40);
+        const m = Math.floor(remain / 60);
+        const s = remain % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+      }
+      const remain = 3600 - sec;
       const m = Math.floor(remain / 60);
       const s = remain % 60;
       return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
+
+    const timeLeftStr = getVirtualTimeLeft(recordingTime);
+
+    // --- 시나리오 이벤트 트리거 (토스트 알림 수정 완료) ---
+    if (recordingTime === 8) {
+      setCurrentBaraId("meeting_caution");
+      setIsDeviationDetected(true);
+      setChatList(prev => [...prev, { id: Date.now(), sender: "bara", text: "🚨 안건에서 조금 벗어난 것 같슴니다..?", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+    } 
+    else if (recordingTime === 15) {
+      setCurrentBaraId("meeting_normal");
+      setIsDeviationDetected(false);
+      setAgendas(prev => prev.map(a => a.id === 1 ? { ...a, isCompleted: true, summary: "공지 중심 통합 합의" } : a));
     }
-    
-    // 48~54초: 5분(300초)부터 역산
-    if (sec >= 48) {
-      const remain = 300 - (sec - 48);
-      const m = Math.floor(remain / 60);
-      const s = remain % 60;
-      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    else if (recordingTime === 32) {
+      setCurrentBaraId("meeting_warning");
+      setIsDeviationDetected(true);
     }
-    
-    // 40~47초: 10분(600초)부터 역산
-    if (sec >= 40) {
-      const remain = 600 - (sec - 40);
-      const m = Math.floor(remain / 60);
-      const s = remain % 60;
-      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    else if (recordingTime === 40) {
+      setAgendas(prev => prev.map(a => a.id === 3 ? { ...a, isCompleted: true, summary: "지표 도입 순위 조정" } : a));
+      setToastMessage("회의 종료 10분 전 입니다. ⏰");
+      setToastSubMessage("중요한 안건 위주로 마무리를 부탁드려요!");
+      setIsToastVisible(true);
     }
-    
-    // 0~39초: 60분(3600초)부터 정상 역산
-    const remain = 3600 - sec;
-    const m = Math.floor(remain / 60);
-    const s = remain % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
+    else if (recordingTime === 48) { // ★ 추가: 5분 전 알림
+      setToastMessage("회의 종료 5분 전 입니다. ⏰");
+      setToastSubMessage("마지막 안건을 정리해야 할 시간이에요.");
+      setIsToastVisible(true);
+    }
+    else if (recordingTime === 50) {
+      setAgendas(prev => prev.map(a => a.id === 4 ? { ...a, isCompleted: true, summary: "체류시간 지표 도입 확정" } : a));
+    }
+    else if (recordingTime === 55) { // ★ 추가: 3분 전 알림
+      setToastMessage("회의 종료 3분 전 입니다. ⏰");
+      setToastSubMessage("곧 회의가 종료됩니다. 내용을 요약해 주세요! 🐹");
+      setIsToastVisible(true);
+    }
+    else if (recordingTime === 65) {
+      setIsCarryOverModalOpen(true);
+    }
 
-  const timeLeftStr = getVirtualTimeLeft(recordingTime);
+    if (!isGenerating && !isStopModalOpen) {
+      emitBara(currentBaraId, progress, undefined, timeLeftStr);
+    }
 
-  // --- 시나리오 이벤트 트리거 ---
-  if (recordingTime === 8) {
-    setCurrentBaraId("meeting_caution");
-    setIsDeviationDetected(true);
-    setChatList(prev => [...prev, { id: Date.now(), sender: "bara", text: "🚨 안건에서 조금 벗어난 것 같슴니다..?", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
-  } 
-  else if (recordingTime === 15) {
-    setCurrentBaraId("meeting_normal");
-    setIsDeviationDetected(false);
-    setAgendas(prev => prev.map(a => a.id === 1 ? { ...a, isCompleted: true, summary: "공지 중심 통합 합의" } : a));
-  }
-  else if (recordingTime === 32) {
-    setCurrentBaraId("meeting_warning");
-    setIsDeviationDetected(true);
-  }
-  else if (recordingTime === 40) {
-    setAgendas(prev => prev.map(a => a.id === 3 ? { ...a, isCompleted: true, summary: "지표 도입 순위 조정" } : a));
-    setToastMessage("회의 종료 10분 전 입니다. ⏰");
-    setIsToastVisible(true);
-  }
-  else if (recordingTime === 50) {
-    setAgendas(prev => prev.map(a => a.id === 4 ? { ...a, isCompleted: true, summary: "체류시간 지표 도입 확정" } : a));
-  }
-  else if (recordingTime === 65) {
-    setIsCarryOverModalOpen(true);
-  }
-
-  // 💡 [무조건 실행] 매 초마다 계산된 가상 시간을 바라에게 쏩니다.
-  // 이 덕분에 '60:00' 같은 초기값이 끼어들 틈이 없습니다.
-  if (!isGenerating && !isStopModalOpen) {
-    emitBara(currentBaraId, progress, undefined, timeLeftStr);
-  }
-
-}, [recordingTime]);
+  }, [recordingTime]);
 
   useEffect(() => {
     const completedCount = agendas.filter(a => a.isCompleted).length;
@@ -296,7 +292,6 @@ useEffect(() => {
         </div>
       ) : (
         <div className="flex flex-col lg:flex-row gap-6 h-screen bg-white overflow-hidden relative p-6">
-          
           <div className="flex-1 flex flex-col gap-6 p-4 overflow-hidden">
             <div className={`rounded-2xl p-6 space-y-4 shadow-sm border transition-colors duration-500 ${isDeviationDetected ? 'bg-red-50 border-red-200' : 'bg-[#F4F9ED] border-[#91D148]/10'} shrink-0`}>
               <div className="flex items-center justify-between">
@@ -364,13 +359,11 @@ useEffect(() => {
                   {liveScript.filter(item => item.time <= recordingTime).map((item) => (
                     <div key={item.id} className={`group relative space-y-2 animate-fade-in-up ${item.text.includes("점심") || item.text.includes("넷플릭스") ? 'border-2 border-red-200 rounded-2xl p-2 bg-red-50/30' : ''}`}>
                       <div className="absolute -left-[21px] top-2 w-3 h-3 bg-white border-2 border-gray-200 rounded-full group-hover:border-[#91D148] transition-colors"></div>
-                      
-                      {/* ★ 개별 발화자 수정 버튼으로 변경 */}
                       <button 
                         onClick={() => {
                           setSpeakerEditMode('single');
                           setSelectedSpeaker(item.user);
-                          setEditingScriptId(item.id); // 어떤 줄을 고치는지 ID 저장
+                          setEditingScriptId(item.id); 
                           setIsModalOpen(true);
                         }}
                         className="font-bold text-gray-900 text-sm flex items-center gap-1.5 hover:text-[#91D148] transition-colors group mb-1 focus:outline-none"
@@ -378,7 +371,6 @@ useEffect(() => {
                         {item.user}
                         <svg className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-[#91D148]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                       </button>
-
                       <div className="text-[15px] text-gray-600 leading-relaxed bg-gray-50/50 p-4 rounded-2xl group-hover:bg-[#F4F9ED]/60 transition-all">{item.text}</div>
                     </div>
                   ))}
@@ -419,7 +411,6 @@ useEffect(() => {
                   </button>
                 ))}
               </div>
-
               {activeSideTab === "keyword-search" && (
                 <div className="space-y-4 animate-fade-in">
                   <div className="relative group">
@@ -469,7 +460,6 @@ useEffect(() => {
                         </div>
                       </div>
                     ))}
-                    
                     {isBaraTyping && (
                       <div className="flex flex-col items-start animate-fade-in mt-2">
                         <span className="text-[11px] font-black text-[#91D148] mb-1 ml-1">BARA 🐹</span>
@@ -495,11 +485,7 @@ useEffect(() => {
                         disabled={isBaraTyping}
                         className="w-full bg-white border-2 border-[#91D148]/30 rounded-2xl py-3 pl-4 pr-12 text-sm font-bold focus:border-[#91D148] outline-none shadow-sm disabled:bg-gray-50" 
                       />
-                      <button 
-                        onClick={handleSendMessage} 
-                        disabled={isBaraTyping}
-                        className="absolute right-1.5 w-9 h-9 bg-[#91D148] text-white rounded-xl flex items-center justify-center hover:bg-[#82bd41] shadow-sm disabled:bg-gray-300 transition-colors"
-                      >
+                      <button onClick={handleSendMessage} disabled={isBaraTyping} className="absolute right-1.5 w-9 h-9 bg-[#91D148] text-white rounded-xl flex items-center justify-center hover:bg-[#82bd41] shadow-sm disabled:bg-gray-300 transition-colors">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
                       </button>
                     </div>
@@ -507,21 +493,13 @@ useEffect(() => {
                 </div>
               ) : activeSideTab === "speakers" ? (
                 <div className="space-y-4 animate-fade-in overflow-y-auto no-scrollbar pt-2">
-                  {/* ★ 우측 패널 발화자 변경 버튼 (일괄 변경 모드) */}
                   {activeSpeakers.map((speakerName, index) => (
                     <div key={index} className="flex items-center justify-between bg-white p-5 rounded-2xl shadow-sm border border-transparent hover:border-[#91D148]/30 transition-all">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-[#F4F9ED] rounded-full flex items-center justify-center text-[#91D148] font-bold">🔊</div>
                         <span className="font-bold text-gray-800 text-[15px]">{speakerName}</span>
                       </div>
-                      <button 
-                        onClick={() => { 
-                          setSpeakerEditMode('bulk'); 
-                          setSelectedSpeaker(speakerName); 
-                          setIsModalOpen(true); 
-                        }} 
-                        className="p-2 text-gray-400 hover:text-[#91D148] transition-colors"
-                      >
+                      <button onClick={() => { setSpeakerEditMode('bulk'); setSelectedSpeaker(speakerName); setIsModalOpen(true); }} className="p-2 text-gray-400 hover:text-[#91D148] transition-colors">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                       </button>
                     </div>
@@ -534,8 +512,6 @@ useEffect(() => {
       )}
       
       <MemberAddModal isOpen={isMemberModalOpen} onClose={() => setIsMemberModalOpen(false)} onAdd={handleAddMembers} />
-      
-      {/* ★ 모달에 mode 전달 및 onSave 연결 */}
       <SpeakerEditModal 
         isOpen={isModalOpen} 
         onClose={() => { setIsModalOpen(false); setEditingScriptId(null); }} 
@@ -550,7 +526,6 @@ useEffect(() => {
           <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"></div>
           <div className="relative bg-white rounded-[24px] p-10 w-[420px] shadow-2xl text-center animate-fade-in">
             <h2 className="text-[20px] font-black text-gray-900 mb-4">녹음을 종료하시겠습니까?</h2>
-            
             {unresolvedAgendasCount > 0 ? (
               <div className="mb-8">
                 <p className="text-[14px] font-black text-red-500 mb-2 flex items-center justify-center gap-1">
@@ -566,14 +541,8 @@ useEffect(() => {
                 모든 안건이 성공적으로 완료되었습니다! 🎉<br />종료 후 회의록이 자동으로 생성됩니다.
               </p>
             )}
-
             <div className="flex gap-3">
-              <button 
-                onClick={() => setIsStopModalOpen(false)} 
-                className="flex-1 py-3.5 bg-[#F1F3F5] text-[#495057] font-bold rounded-xl hover:bg-gray-200 transition-all"
-              >
-                아니오
-              </button>
+              <button onClick={() => setIsStopModalOpen(false)} className="flex-1 py-3.5 bg-[#F1F3F5] text-[#495057] font-bold rounded-xl hover:bg-gray-200 transition-all">아니오</button>
               <button 
                 onClick={() => { 
                   setIsStopModalOpen(false); 
@@ -584,9 +553,7 @@ useEffect(() => {
                   setIsToastVisible(true);
                 }} 
                 className="flex-1 py-3.5 bg-[#91D148] text-white font-bold rounded-xl hover:bg-[#82bd41] transition-all shadow-md"
-              >
-                네, 종료합니다
-              </button>
+              >네, 종료합니다</button>
             </div>
           </div>
         </div>
@@ -601,12 +568,7 @@ useEffect(() => {
               회의를 마무리하고 하단의 <strong className="text-red-500">[녹음 종료]</strong> 버튼을<br />직접 눌러 회의록을 생성해 주세요.
             </p>
             <div className="flex justify-center">
-              <button 
-                onClick={() => setIsCarryOverModalOpen(false)} 
-                className="w-full py-3.5 bg-[#91D148] text-white font-bold rounded-xl hover:bg-[#82bd41] shadow-[0_4px_12px_rgba(145,209,72,0.3)] transition-all"
-              >
-                확 인
-              </button>
+              <button onClick={() => setIsCarryOverModalOpen(false)} className="w-full py-3.5 bg-[#91D148] text-white font-bold rounded-xl hover:bg-[#82bd41] shadow-[0_4px_12px_rgba(145,209,72,0.3)] transition-all">확 인</button>
             </div>
           </div>
         </div>
