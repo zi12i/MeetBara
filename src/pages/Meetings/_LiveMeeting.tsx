@@ -7,14 +7,6 @@ import Toast from "../../components/common/Toast";
 import CapybaraZone from "../../components/common/CapybaraZone";
 import { createPortal } from "react-dom";
 
-declare global {
-  interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
-  }
-}
-
-// --- 타입 정의 ---
 interface ChatMessage {
   id: number;
   sender: "me" | "bara";
@@ -31,26 +23,6 @@ interface MeetingLog {
   content: string;
 }
 
-interface Agenda {
-  id: number;
-  text: string;
-  isCompleted: boolean;
-  summary: string;
-}
-
-interface ScriptItem {
-  id: number;
-  time: number;
-  user: string;
-  text: string;
-}
-
-interface SummaryItem {
-  time: number;
-  title: string;
-  content: string[];
-}
-
 const LiveMeeting: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate(); 
@@ -61,18 +33,9 @@ const LiveMeeting: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSpeaker, setSelectedSpeaker] = useState("");
   const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
+  const [meetingMembers, setMeetingMembers] = useState(["김철수", "이영희", "박지민"]);
 
-  // 깨끗한 상태로 초기화 (더미 데이터 제거 완료)
-  const [meetingTitle, setMeetingTitle] = useState("새로운 회의");
-  const [meetingDate, setMeetingDate] = useState(new Date().toLocaleString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }));
-  const [meetingMembers, setMeetingMembers] = useState<string[]>([]);
-  const [agendas, setAgendas] = useState<Agenda[]>([]);
-  const [liveScript, setLiveScript] = useState<ScriptItem[]>([]);
-  const [fullSummary, setFullSummary] = useState<SummaryItem[]>([]);
-  const [meetingKeywords, setMeetingKeywords] = useState<string[]>([]);
-  const [meetingLogs, setMeetingLogs] = useState<MeetingLog[]>([]);
-
-  // 발화자 수정 모드 구분용 (일괄 vs 개별)
+  // ★ 신규 상태: 발화자 수정 모드 구분용 (일괄 vs 개별)
   const [speakerEditMode, setSpeakerEditMode] = useState<'bulk' | 'single'>('bulk');
   const [editingScriptId, setEditingScriptId] = useState<number | null>(null);
 
@@ -81,7 +44,6 @@ const LiveMeeting: React.FC = () => {
   const [isComposing, setIsComposing] = useState(false);
   const [isBaraTyping, setIsBaraTyping] = useState(false); 
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const scriptEndRef = useRef<HTMLDivElement>(null); 
 
   const [isStopModalOpen, setIsStopModalOpen] = useState(false); 
   const [isCarryOverModalOpen, setIsCarryOverModalOpen] = useState(false);
@@ -97,25 +59,65 @@ const LiveMeeting: React.FC = () => {
   const [isDeviationDetected, setIsDeviationDetected] = useState(false);
   const [currentBaraId, setCurrentBaraId] = useState("meeting_normal");
 
-  const MEETING_TOTAL_TIME = 60 * 60; // 60분
+  const MEETING_TOTAL_TIME = 60 * 60;
 
-  // STT (Web Speech API) 관련 Ref 및 상태
-  const recognitionRef = useRef<any>(null);
-  const [interimTranscript, setInterimTranscript] = useState("");
+  const [agendas, setAgendas] = useState([
+    { id: 1, text: "메인 피드 레이아웃 개편안 검토", isCompleted: false, summary: "" },
+    { id: 2, text: "알림센터 통합 구조 설계", isCompleted: false, summary: "" },
+    { id: 3, text: "옵셔널 전환 설정 유도 방안", isCompleted: false, summary: "" },
+    { id: 4, text: "추가 지표(체류시간) 도입 여부", isCompleted: false, summary: "" },
+    { id: 5, text: "마케팅 자동화 툴 연동 건", isCompleted: false, summary: "" } 
+  ]);
+
+  const [liveScript, setLiveScript] = useState([
+      { id: 1, time: 1, user: "김철수", text: "오늘 주간 회의 시작할게요. 첫 번째 안건인 메인 피드 레이아웃부터 보시죠." },
+      { id: 2, time: 5, user: "이영희", text: "공지 섹션을 상단으로 올리는 게 좋겠어요." },
+      { id: 3, time: 8, user: "박지민", text: "아, 근데 오늘 점심 근처 돈가스집 어때요? 새로 생겼던데. (안건 이탈)" },
+      { id: 4, time: 12, user: "김철수", text: "아... 넵. 일단 공지 중심으로 우선 통합하고 나중에 확장하는 걸로 확정하시죠." },
+      { id: 5, time: 18, user: "이영희", text: "좋습니다. 다음 알림센터 통합 건은 옵셔널로 설계할까요?" },
+      { id: 6, time: 23, user: "박지민", text: "네, 초기엔 옵셔널로 가고 팝업으로 유도하는 게 UX 면에서 낫겠네요." },
+      { id: 7, time: 31, user: "이영희", text: "그건 그렇고 주말에 넷플릭스 영화 보셨어요? 진짜 대박이던데... (심각한 이탈)" },
+      { id: 8, time: 36, user: "김철수", text: "아차, 회의 집중해야죠! 추가 지표는 체류시간 도입하는 걸로 결론 낼까요?" },
+      { id: 9, time: 42, user: "박지민", text: "네, 체류시간 지표를 우선 도입하고 나머지는 다음 분기로 넘기시죠." },
+      { id: 10, time: 48, user: "김철수", text: "마지막으로 마케팅 자동화 툴 연동 건 논의해야 하는데 시간이..." },
+    ]);
 
   const activeSpeakers = Array.from(new Set(liveScript.map(script => script.user)));
-  const filteredLogs = meetingLogs.filter(log => log.title.includes(searchTerm) || log.keywords.some(k => k.includes(searchTerm)));
+
+const fullSummary = [
+    { time: 1, title: "회의 시작 및 도입", content: ["주간 정기 회의 개시", "메인 피드 레이아웃 검토 시작"] },
+    { time: 15, title: "안건 1: 메인 피드 레이아웃 결정", content: ["공지 섹션 중심 우선 통합 합의"] },
+    { time: 25, title: "안건 2: 알림센터 통합 설계", content: ["초기 도입 시 옵셔널 전환 방식 채택", "팝업을 통한 설정 유도"] },
+    { time: 40, title: "안건 3: 옵셔널 설정 유도 방안", content: ["지표 도입 우선순위 조정을 통해 연기"] },
+    { time: 50, title: "안건 4: 추가 지표 도입 결정", content: ["체류시간 지표 우선 도입 확정"] }
+  ];
+
+  const meetingKeywords = ["메인피드", "알림센터", "검색필터", "옵셔널전환", "점심메뉴", "UX개선", "단계적통합", "구조설계"];
+  const mockMeetingLogs: MeetingLog[] = [
+    { id: 1, title: "신규 프로젝트 기획", date: "2026.03.28", members: "김철수, 이영희, 박지민", keywords: ["알림센터"], content: "공지 중심 통합..." }
+  ];
+  const filteredLogs = mockMeetingLogs.filter(log => log.title.includes(searchTerm) || log.keywords.some(k => k.includes(searchTerm)));
+
 
   const emitBara = (scenarioId: string, progress?: number, customMessage?: string, timeLeft?: string) => {
-    const event = new CustomEvent('UPDATE_BARA', { detail: { scenarioId, progress, customMessage, timeLeft } });
-    window.dispatchEvent(event);
-  }
+      const event = new CustomEvent('UPDATE_BARA', { 
+        detail: { scenarioId, progress, customMessage, timeLeft } 
+      });
+      window.dispatchEvent(event);
+    }
 
+  // ★ 수정됨: 모달 저장 시 분기 처리 (일괄 vs 개별)
   const handleSpeakerChange = (newName: string) => {
     if (speakerEditMode === 'bulk') {
-      setLiveScript(prev => prev.map(script => script.user === selectedSpeaker ? { ...script, user: newName } : script));
+      // 일괄 변경: 해당 이름 전체를 교체
+      setLiveScript(prev => prev.map(script => 
+        script.user === selectedSpeaker ? { ...script, user: newName } : script
+      ));
     } else if (speakerEditMode === 'single' && editingScriptId !== null) {
-      setLiveScript(prev => prev.map(script => script.id === editingScriptId ? { ...script, user: newName } : script));
+      // 개별 변경: 클릭했던 딱 그 한 줄만 교체!
+      setLiveScript(prev => prev.map(script => 
+        script.id === editingScriptId ? { ...script, user: newName } : script
+      ));
     }
   };
 
@@ -126,109 +128,92 @@ const LiveMeeting: React.FC = () => {
     }
   }, [isToastVisible]);
 
-  // STT (Web Speech API) 세팅
-  useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true; 
-      recognitionRef.current.interimResults = true; 
-      recognitionRef.current.lang = 'ko-KR'; 
-
-      recognitionRef.current.onresult = (event: any) => {
-        let interim = "";
-        let final = "";
-
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            final += event.results[i][0].transcript;
-          } else {
-            interim += event.results[i][0].transcript;
-          }
-        }
-
-        setInterimTranscript(interim);
-
-        if (final) {
-          setLiveScript(prev => [
-            ...prev,
-            {
-              id: Date.now(),
-              time: recordingTime, 
-              user: "현장 음성", 
-              text: final.trim()
-            }
-          ]);
-        }
-      };
-
-      recognitionRef.current.onend = () => {
-        if (isRecording && recognitionRef.current) {
-          try { recognitionRef.current.start(); } catch (e) { console.error(e); }
-        }
-      };
-    } else {
-      console.warn("이 브라우저는 Web Speech API를 지원하지 않습니다.");
-    }
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // 타이머 및 STT 실행/중지 처리
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    let waveformInterval: NodeJS.Timeout;
-
     if (isRecording) {
-      interval = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
-
-      waveformInterval = setInterval(() => {
-        setWaveforms(Array(35).fill(0).map(() => Math.floor(Math.random() * 16) + 4));
-      }, 200);
-
-      if (recognitionRef.current) {
-        try { recognitionRef.current.start(); } catch (e) { /* 이미 실행중 */ }
-      }
-    } else {
-      setWaveforms(Array(35).fill(4));
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    }
-
-    return () => {
-      clearInterval(interval);
-      clearInterval(waveformInterval);
-    };
+          interval = setInterval(() => {
+            setRecordingTime(prev => prev + 1);
+          }, 1000);
+        }
+    return () => clearInterval(interval);
   }, [isRecording]);
 
-  useEffect(() => {
-    const completedCount = agendas.filter(a => a.isCompleted).length;
-    const progress = agendas.length > 0 ? Math.floor((completedCount / agendas.length) * 100) : 0;
+// === 💡 강화된 시연용 가상 시간(빨리감기) 계산기 ===
+useEffect(() => {
+  const completedCount = agendas.filter(a => a.isCompleted).length;
+  const progress = Math.floor((completedCount / agendas.length) * 100);
+  
+  const getVirtualTimeLeft = (sec: number) => {
+    // 65초 이상: 종료
+    if (sec >= 65) return "00:00";
     
-    const getVirtualTimeLeft = (sec: number) => {
-      const remain = Math.max(MEETING_TOTAL_TIME - sec, 0);
-      return `${Math.floor(remain / 60).toString().padStart(2, '0')}:${(remain % 60).toString().padStart(2, '0')}`;
-    };
-
-    const timeLeftStr = getVirtualTimeLeft(recordingTime);
-
-    if (recordingTime >= MEETING_TOTAL_TIME && !isCarryOverModalOpen) {
-      setIsCarryOverModalOpen(true);
+    // 55~64초: 3분(180초)부터 역산
+    if (sec >= 55) {
+      const remain = 180 - (sec - 55);
+      const m = Math.floor(remain / 60);
+      const s = remain % 60;
+      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     }
-
-    if (!isGenerating && !isStopModalOpen) {
-      emitBara(currentBaraId, progress, undefined, timeLeftStr);
+    
+    // 48~54초: 5분(300초)부터 역산
+    if (sec >= 48) {
+      const remain = 300 - (sec - 48);
+      const m = Math.floor(remain / 60);
+      const s = remain % 60;
+      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recordingTime]);
+    
+    // 40~47초: 10분(600초)부터 역산
+    if (sec >= 40) {
+      const remain = 600 - (sec - 40);
+      const m = Math.floor(remain / 60);
+      const s = remain % 60;
+      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+    
+    // 0~39초: 60분(3600초)부터 정상 역산
+    const remain = 3600 - sec;
+    const m = Math.floor(remain / 60);
+    const s = remain % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const timeLeftStr = getVirtualTimeLeft(recordingTime);
+
+  // --- 시나리오 이벤트 트리거 ---
+  if (recordingTime === 8) {
+    setCurrentBaraId("meeting_caution");
+    setIsDeviationDetected(true);
+    setChatList(prev => [...prev, { id: Date.now(), sender: "bara", text: "🚨 안건에서 조금 벗어난 것 같슴니다..?", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+  } 
+  else if (recordingTime === 15) {
+    setCurrentBaraId("meeting_normal");
+    setIsDeviationDetected(false);
+    setAgendas(prev => prev.map(a => a.id === 1 ? { ...a, isCompleted: true, summary: "공지 중심 통합 합의" } : a));
+  }
+  else if (recordingTime === 32) {
+    setCurrentBaraId("meeting_warning");
+    setIsDeviationDetected(true);
+  }
+  else if (recordingTime === 40) {
+    setAgendas(prev => prev.map(a => a.id === 3 ? { ...a, isCompleted: true, summary: "지표 도입 순위 조정" } : a));
+    setToastMessage("회의 종료 10분 전 입니다. ⏰");
+    setIsToastVisible(true);
+  }
+  else if (recordingTime === 50) {
+    setAgendas(prev => prev.map(a => a.id === 4 ? { ...a, isCompleted: true, summary: "체류시간 지표 도입 확정" } : a));
+  }
+  else if (recordingTime === 65) {
+    setIsCarryOverModalOpen(true);
+  }
+
+  // 💡 [무조건 실행] 매 초마다 계산된 가상 시간을 바라에게 쏩니다.
+  // 이 덕분에 '60:00' 같은 초기값이 끼어들 틈이 없습니다.
+  if (!isGenerating && !isStopModalOpen) {
+    emitBara(currentBaraId, progress, undefined, timeLeftStr);
+  }
+
+}, [recordingTime]);
 
   useEffect(() => {
     const completedCount = agendas.filter(a => a.isCompleted).length;
@@ -246,81 +231,11 @@ const LiveMeeting: React.FC = () => {
   }, [chatList, isBaraTyping, activeSideTab]); 
 
   useEffect(() => {
-    if (activeTab === "script") {
-      scriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [liveScript, interimTranscript, activeTab]);
-
-  useEffect(() => {
     if (isGenerating) {
       const timer = setTimeout(() => navigate(`/meeting/${id}/result`), 5000); 
       return () => clearTimeout(timer);
     }
   }, [isGenerating, navigate, id]);
-  
-  // 💡 LLM 요약 상태 및 API 호출 함수 (Vite 환경변수 반영 & 에러 핸들링 강화)
-  const [isSummarizing, setIsSummarizing] = useState(false);
-
-  const generateLiveSummary = async () => {
-    if (liveScript.length === 0) return;
-    setIsSummarizing(true);
-    const scriptText = liveScript.map((item) => `[${item.user}] ${item.text}`).join("\n");
-
-    try {
-      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-      
-      if (!apiKey) {
-        throw new Error("VITE_OPENAI_API_KEY가 설정되지 않았습니다. .env 파일을 확인해 주세요.");
-      }
-
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`, 
-        },
-        body: JSON.stringify({
-          model: "gpt-5-mini", 
-          response_format: { type: "json_object" }, 
-          messages: [
-            {
-              role: "system",
-              content: `당신은 회의 스크립트를 분석하는 전문 AI 어시스턴트입니다. 
-제공된 대화 내용을 바탕으로 실시간 요약과 핵심 키워드를 JSON 형식으로만 반환하세요.
-반드시 아래의 JSON 구조를 엄격하게 지켜주세요.
-{
-  "summary": [
-    { "time": 0, "title": "안건 또는 주제명", "content": ["요약 포인트 1", "요약 포인트 2"] }
-  ],
-  "keywords": ["키워드1", "키워드2", "키워드3"]
-}`
-            },
-            { role: "user", content: scriptText },
-          ],
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`API 오류: ${errorData.error?.message || response.statusText}`);
-      }
-
-      const data = await response.json();
-      const parsedData = JSON.parse(data.choices[0].message.content);
-
-      if (parsedData.summary) setFullSummary(parsedData.summary);
-      if (parsedData.keywords) setMeetingKeywords(parsedData.keywords);
-
-      setToastMessage("AI 실시간 요약이 업데이트되었습니다! ✨");
-      setIsToastVisible(true);
-    } catch (error: any) {
-      console.error("LLM 요약 중 에러 발생:", error);
-      setToastMessage(`요약 실패: ${error.message}`);
-      setIsToastVisible(true);
-    } finally {
-      setIsSummarizing(false);
-    }
-  };
 
   const handleSendMessage = () => {
     if (!inputValue.trim()) return;
@@ -331,11 +246,11 @@ const LiveMeeting: React.FC = () => {
 
     setTimeout(() => {
       let responseText = "지금 진행 중인 내용에 집중해서 듣고 있어요! 도움이 필요하면 구체적으로 말씀해주세요. 🐹";
-      if (userMessage.includes("요약")) responseText = "지금까지 진행된 내용을 분석하여 요약 중입니다! 📝";
+      if (userMessage.includes("요약")) responseText = "지금까지 메인 피드 개편에 대해 논의되었고, '공지 우선 통합'으로 의견이 모아졌습니다! 📝";
       else if (userMessage.includes("안건") || userMessage.includes("진행")) {
         const completed = agendas.filter(a => a.isCompleted).length;
         const nextAgenda = agendas.find(a => !a.isCompleted)?.text || "없음";
-        responseText = `현재 총 ${agendas.length}개의 안건 중 ${completed}개가 완료되었어요. 다음 다룰 안건은 '${nextAgenda}' 입니다. 🎯`;
+        responseText = `현재 총 4개의 안건 중 ${completed}개가 완료되었어요. 다음 다룰 안건은 '${nextAgenda}' 입니다. 🎯`;
       } else if (userMessage.includes("시간") || userMessage.includes("얼마나")) {
         responseText = `회의 시작 후 ${Math.floor(recordingTime / 60)}분 ${recordingTime % 60}초 경과했습니다. 좋은 페이스네요! ⏱️`;
       } else {
@@ -381,23 +296,22 @@ const LiveMeeting: React.FC = () => {
         </div>
       ) : (
         <div className="flex flex-col lg:flex-row gap-6 h-screen bg-white overflow-hidden relative p-6">
+          
           <div className="flex-1 flex flex-col gap-6 p-4 overflow-hidden">
             <div className={`rounded-2xl p-6 space-y-4 shadow-sm border transition-colors duration-500 ${isDeviationDetected ? 'bg-red-50 border-red-200' : 'bg-[#F4F9ED] border-[#91D148]/10'} shrink-0`}>
               <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-gray-900">{meetingTitle}</h1>
+                <h1 className="text-2xl font-bold text-gray-900">[주간 정기] 신규 프로젝트 UI/UX 개선안 검토 회의</h1>
                 {isDeviationDetected && <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-black animate-bounce shadow-md">안건 이탈 주의!</span>}
               </div>
               <div className="flex flex-wrap items-center gap-2 text-sm">
-                {meetingMembers.length > 0 ? meetingMembers.map(name => (
+                {meetingMembers.map(name => (
                   <div key={name} className="relative group">
                     <span className="px-4 py-1.5 bg-white text-[#91D148] border border-[#91D148]/20 font-bold rounded-lg shadow-sm flex items-center transition-all group-hover:pr-8">{name}</span>
                     <button onClick={() => setMeetingMembers(prev => prev.filter(n => n !== name))} className="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 bg-[#91D148] text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 shadow-sm"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
                   </div>
-                )) : (
-                  <span className="text-gray-400 text-sm font-medium">참석자가 없습니다.</span>
-                )}
+                ))}
                 <span onClick={() => setIsMemberModalOpen(true)} className="text-gray-400 ml-2 cursor-pointer hover:text-[#91D148] font-medium">+ 회의자 추가</span>
-                <span className="ml-auto text-gray-500 font-bold px-1 text-[13px]">{meetingDate}</span>
+                <span className="ml-auto text-gray-500 font-bold px-1 text-[13px]">2026년 4월 16일 15:00</span>
               </div>
             </div>
 
@@ -413,7 +327,7 @@ const LiveMeeting: React.FC = () => {
             <div className="flex-1 overflow-y-auto space-y-6 px-2 no-scrollbar pb-10">
               {activeTab === "decisions" ? (
                 <section className="space-y-4 animate-fade-in">
-                  {agendas.length > 0 ? agendas.map((agenda) => (
+                  {agendas.map((agenda) => (
                     <div key={agenda.id} className={`py-5 px-6 rounded-[24px] shadow-sm transform transition-all duration-500 border ${agenda.isCompleted ? 'bg-[#F4F9ED] border-[#91D148]/30' : 'bg-gray-100 border-gray-200'}`}>
                       <div className="flex items-center gap-5">
                         <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors duration-500 ${agenda.isCompleted ? 'bg-[#91D148] border-[#91D148]' : 'bg-white border-gray-300'}`}>
@@ -428,27 +342,14 @@ const LiveMeeting: React.FC = () => {
                         </div>
                       )}
                     </div>
-                  )) : (
-                    <div className="flex justify-center items-center h-40 text-gray-400 font-bold">등록된 안건이 없습니다.</div>
-                  )}
+                  ))}
                 </section>
               ) : activeTab === "live-summary" ? (
                 <div className="animate-fade-in space-y-8">
-                  <div className="flex items-center justify-between gap-2 bg-[#F4F9ED]/50 p-4 rounded-xl border border-[#91D148]/10 mb-6">
-                    <div className="flex items-center gap-2 text-[#91D148] font-bold">
-                      <span className="text-xl">💡</span>
-                      <p>AI가 대화 흐름을 파악하여 실시간으로 요약하고 있습니다.</p>
-                    </div>
-                    
-                    <button 
-                      onClick={generateLiveSummary}
-                      disabled={isSummarizing || liveScript.length === 0}
-                      className="px-4 py-2 bg-white border border-[#91D148] text-[#91D148] rounded-lg font-bold shadow-sm hover:bg-[#91D148] hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isSummarizing ? "분석 중..." : "AI 최신화 🔄"}
-                    </button>
+                  <div className="flex items-center gap-2 text-[#91D148] font-bold bg-[#F4F9ED]/50 p-3 rounded-xl border border-[#91D148]/10 mb-6">
+                    <span className="text-xl">💡</span><p>AI가 대화 흐름을 파악하여 실시간으로 요약하고 있습니다.</p>
                   </div>
-                  {fullSummary.length > 0 ? fullSummary.map((summary, idx) => (
+                  {fullSummary.filter(s => s.time <= recordingTime).map((summary, idx) => (
                     <div key={idx} className="relative pl-6 border-l-2 border-gray-100 text-gray-600 font-medium animate-fade-in-up">
                       <div className="absolute -left-[9px] top-0 w-4 h-4 bg-[#91D148] rounded-full border-4 border-white"></div>
                       <h3 className="text-lg font-bold text-gray-800 mb-3">{summary.title}</h3>
@@ -456,20 +357,20 @@ const LiveMeeting: React.FC = () => {
                         {summary.content.map((txt, i) => <li key={i}>{txt}</li>)}
                       </ul>
                     </div>
-                  )) : (
-                    <div className="text-center text-gray-400 font-bold mt-10">요약될 내용이 아직 없습니다. 회의를 진행해 주세요!</div>
-                  )}
+                  ))}
                 </div>
               ) : activeTab === "script" ? (
                 <div className="animate-fade-in relative pl-4 border-l border-gray-100 ml-2 space-y-6 pb-10">
-                  {liveScript.length > 0 ? liveScript.map((item) => (
-                    <div key={item.id} className="group relative space-y-2 animate-fade-in-up">
+                  {liveScript.filter(item => item.time <= recordingTime).map((item) => (
+                    <div key={item.id} className={`group relative space-y-2 animate-fade-in-up ${item.text.includes("점심") || item.text.includes("넷플릭스") ? 'border-2 border-red-200 rounded-2xl p-2 bg-red-50/30' : ''}`}>
                       <div className="absolute -left-[21px] top-2 w-3 h-3 bg-white border-2 border-gray-200 rounded-full group-hover:border-[#91D148] transition-colors"></div>
+                      
+                      {/* ★ 개별 발화자 수정 버튼으로 변경 */}
                       <button 
                         onClick={() => {
                           setSpeakerEditMode('single');
                           setSelectedSpeaker(item.user);
-                          setEditingScriptId(item.id);
+                          setEditingScriptId(item.id); // 어떤 줄을 고치는지 ID 저장
                           setIsModalOpen(true);
                         }}
                         className="font-bold text-gray-900 text-sm flex items-center gap-1.5 hover:text-[#91D148] transition-colors group mb-1 focus:outline-none"
@@ -477,22 +378,10 @@ const LiveMeeting: React.FC = () => {
                         {item.user}
                         <svg className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-[#91D148]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                       </button>
+
                       <div className="text-[15px] text-gray-600 leading-relaxed bg-gray-50/50 p-4 rounded-2xl group-hover:bg-[#F4F9ED]/60 transition-all">{item.text}</div>
                     </div>
-                  )) : (
-                    <div className="text-gray-400 font-bold pt-10 text-center">말씀을 시작하시면 여기에 텍스트가 표시됩니다.</div>
-                  )}
-
-                  {isRecording && interimTranscript && (
-                     <div className="group relative space-y-2 animate-fade-in">
-                       <div className="absolute -left-[21px] top-2 w-3 h-3 bg-[#91D148] border-2 border-white rounded-full animate-pulse"></div>
-                       <div className="font-bold text-gray-400 text-sm mb-1">인식 중...</div>
-                       <div className="text-[15px] text-gray-500 leading-relaxed bg-gray-50/50 p-4 rounded-2xl border border-dashed border-[#91D148]/50 italic">
-                         {interimTranscript}
-                       </div>
-                     </div>
-                  )}
-                  <div ref={scriptEndRef} />
+                  ))}
                 </div>
               ) : null}
             </div>
@@ -506,12 +395,12 @@ const LiveMeeting: React.FC = () => {
                 </div>
                 <div className="w-[1.5px] h-4 bg-gray-300"></div>
                 <div className="flex items-center gap-6">
-                  <button onClick={() => setIsRecording(!isRecording)} className="text-gray-500 hover:text-gray-800 transition-colors">
+                  <button onClick={() => setIsRecording(!isRecording)} className="text-gray-500 hover:text-gray-800">
                     {isRecording ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="10" y1="4" x2="10" y2="20"></line><line x1="14" y1="4" x2="14" y2="20"></line></svg> : <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>}
                   </button>
                   <button 
                     onClick={() => { setIsStopModalOpen(true); }} 
-                    className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-1.5 rounded-full hover:bg-gray-50 shadow-sm transition-colors"
+                    className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-1.5 rounded-full hover:bg-gray-50 shadow-sm"
                   >
                     <div className="w-2.5 h-2.5 bg-[#FF6B6B] rounded-sm"></div><span className="text-[13px] font-bold text-[#495057]">녹음 종료</span>
                   </button>
@@ -530,6 +419,7 @@ const LiveMeeting: React.FC = () => {
                   </button>
                 ))}
               </div>
+
               {activeSideTab === "keyword-search" && (
                 <div className="space-y-4 animate-fade-in">
                   <div className="relative group">
@@ -537,7 +427,7 @@ const LiveMeeting: React.FC = () => {
                     <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="키워드로 발언을 검색해 보세요" className="w-full bg-white border-2 border-transparent rounded-2xl py-3 pl-12 pr-10 text-sm font-black focus:border-[#91D148] outline-none shadow-sm transition-all" />
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {meetingKeywords.map(tag => (
+                    {["알림센터", "공지", "옵셔널전환", "체류시간"].map(tag => (
                       <button key={tag} onClick={() => setSearchTerm(tag)} className={`px-3 py-1.5 rounded-full text-[12px] font-extrabold transition-all border ${searchTerm === tag ? "bg-[#91D148] text-white border-[#91D148]" : "bg-gray-200 text-gray-600 border-transparent hover:bg-gray-300"}`}>{tag}</button>
                     ))}
                   </div>
@@ -548,17 +438,15 @@ const LiveMeeting: React.FC = () => {
             <div className="flex-1 flex flex-col overflow-hidden px-6 pb-6">
               {activeSideTab === "keywords" ? (
                 <div className="grid grid-cols-2 gap-4 animate-fade-in pb-10 overflow-y-auto no-scrollbar">
-                  {meetingKeywords.length > 0 ? meetingKeywords.map((kw, idx) => (
+                  {meetingKeywords.map((kw, idx) => (
                     <div key={idx} onClick={() => { setActiveSideTab("keyword-search"); setSearchTerm(kw); }} className="bg-gray-200/80 border border-gray-300 py-6 px-4 rounded-[20px] flex items-center justify-center shadow-sm hover:bg-[#91D148] hover:text-white cursor-pointer group">
                       <span className="text-[16px] font-black text-gray-800 group-hover:text-white break-all">{kw}</span>
                     </div>
-                  )) : (
-                    <div className="col-span-2 text-center text-gray-400 font-bold mt-10">생성된 키워드가 없습니다.</div>
-                  )}
+                  ))}
                 </div>
               ) : activeSideTab === "keyword-search" ? (
                 <div className="space-y-6 animate-fade-in overflow-y-auto no-scrollbar pt-2">
-                  {filteredLogs.length > 0 ? filteredLogs.map((log) => (
+                  {filteredLogs.map((log) => (
                     <div key={log.id} className="p-6 border-l-[6px] border-[#91D148] rounded-2xl bg-white space-y-4 shadow-sm">
                       <h4 className="font-black text-[17px] text-gray-900 leading-tight">{log.title}</h4>
                       <div className="text-[12px] space-y-1.5 text-gray-800">
@@ -567,9 +455,7 @@ const LiveMeeting: React.FC = () => {
                         <div className="mt-4 p-4 bg-[#F4F9ED]/50 rounded-xl border border-[#91D148]/10 text-[13px] italic">" {log.content} "</div>
                       </div>
                     </div>
-                  )) : (
-                    <div className="text-center text-gray-400 font-bold mt-10">검색 결과가 없습니다.</div>
-                  )}
+                  ))}
                 </div>
               ) : activeSideTab === "chat" ? (
                 <div className="flex flex-col h-full animate-fade-in w-full">
@@ -583,6 +469,7 @@ const LiveMeeting: React.FC = () => {
                         </div>
                       </div>
                     ))}
+                    
                     {isBaraTyping && (
                       <div className="flex flex-col items-start animate-fade-in mt-2">
                         <span className="text-[11px] font-black text-[#91D148] mb-1 ml-1">BARA 🐹</span>
@@ -608,7 +495,11 @@ const LiveMeeting: React.FC = () => {
                         disabled={isBaraTyping}
                         className="w-full bg-white border-2 border-[#91D148]/30 rounded-2xl py-3 pl-4 pr-12 text-sm font-bold focus:border-[#91D148] outline-none shadow-sm disabled:bg-gray-50" 
                       />
-                      <button onClick={handleSendMessage} disabled={isBaraTyping} className="absolute right-1.5 w-9 h-9 bg-[#91D148] text-white rounded-xl flex items-center justify-center hover:bg-[#82bd41] shadow-sm disabled:bg-gray-300 transition-colors">
+                      <button 
+                        onClick={handleSendMessage} 
+                        disabled={isBaraTyping}
+                        className="absolute right-1.5 w-9 h-9 bg-[#91D148] text-white rounded-xl flex items-center justify-center hover:bg-[#82bd41] shadow-sm disabled:bg-gray-300 transition-colors"
+                      >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
                       </button>
                     </div>
@@ -616,19 +507,25 @@ const LiveMeeting: React.FC = () => {
                 </div>
               ) : activeSideTab === "speakers" ? (
                 <div className="space-y-4 animate-fade-in overflow-y-auto no-scrollbar pt-2">
-                  {activeSpeakers.length > 0 ? activeSpeakers.map((speakerName, index) => (
+                  {/* ★ 우측 패널 발화자 변경 버튼 (일괄 변경 모드) */}
+                  {activeSpeakers.map((speakerName, index) => (
                     <div key={index} className="flex items-center justify-between bg-white p-5 rounded-2xl shadow-sm border border-transparent hover:border-[#91D148]/30 transition-all">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-[#F4F9ED] rounded-full flex items-center justify-center text-[#91D148] font-bold">🔊</div>
                         <span className="font-bold text-gray-800 text-[15px]">{speakerName}</span>
                       </div>
-                      <button onClick={() => { setSpeakerEditMode('bulk'); setSelectedSpeaker(speakerName); setIsModalOpen(true); }} className="p-2 text-gray-400 hover:text-[#91D148] transition-colors">
+                      <button 
+                        onClick={() => { 
+                          setSpeakerEditMode('bulk'); 
+                          setSelectedSpeaker(speakerName); 
+                          setIsModalOpen(true); 
+                        }} 
+                        className="p-2 text-gray-400 hover:text-[#91D148] transition-colors"
+                      >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                       </button>
                     </div>
-                  )) : (
-                    <div className="text-center text-gray-400 font-bold mt-10">참여한 발화자가 없습니다.</div>
-                  )}
+                  ))}
                 </div>
               ) : null}
             </div>
@@ -637,6 +534,8 @@ const LiveMeeting: React.FC = () => {
       )}
       
       <MemberAddModal isOpen={isMemberModalOpen} onClose={() => setIsMemberModalOpen(false)} onAdd={handleAddMembers} />
+      
+      {/* ★ 모달에 mode 전달 및 onSave 연결 */}
       <SpeakerEditModal 
         isOpen={isModalOpen} 
         onClose={() => { setIsModalOpen(false); setEditingScriptId(null); }} 
@@ -651,6 +550,7 @@ const LiveMeeting: React.FC = () => {
           <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"></div>
           <div className="relative bg-white rounded-[24px] p-10 w-[420px] shadow-2xl text-center animate-fade-in">
             <h2 className="text-[20px] font-black text-gray-900 mb-4">녹음을 종료하시겠습니까?</h2>
+            
             {unresolvedAgendasCount > 0 ? (
               <div className="mb-8">
                 <p className="text-[14px] font-black text-red-500 mb-2 flex items-center justify-center gap-1">
@@ -666,8 +566,14 @@ const LiveMeeting: React.FC = () => {
                 모든 안건이 성공적으로 완료되었습니다! 🎉<br />종료 후 회의록이 자동으로 생성됩니다.
               </p>
             )}
+
             <div className="flex gap-3">
-              <button onClick={() => setIsStopModalOpen(false)} className="flex-1 py-3.5 bg-[#F1F3F5] text-[#495057] font-bold rounded-xl hover:bg-gray-200 transition-all">아니오</button>
+              <button 
+                onClick={() => setIsStopModalOpen(false)} 
+                className="flex-1 py-3.5 bg-[#F1F3F5] text-[#495057] font-bold rounded-xl hover:bg-gray-200 transition-all"
+              >
+                아니오
+              </button>
               <button 
                 onClick={() => { 
                   setIsStopModalOpen(false); 
@@ -678,7 +584,9 @@ const LiveMeeting: React.FC = () => {
                   setIsToastVisible(true);
                 }} 
                 className="flex-1 py-3.5 bg-[#91D148] text-white font-bold rounded-xl hover:bg-[#82bd41] transition-all shadow-md"
-              >네, 종료합니다</button>
+              >
+                네, 종료합니다
+              </button>
             </div>
           </div>
         </div>
@@ -693,7 +601,12 @@ const LiveMeeting: React.FC = () => {
               회의를 마무리하고 하단의 <strong className="text-red-500">[녹음 종료]</strong> 버튼을<br />직접 눌러 회의록을 생성해 주세요.
             </p>
             <div className="flex justify-center">
-              <button onClick={() => setIsCarryOverModalOpen(false)} className="w-full py-3.5 bg-[#91D148] text-white font-bold rounded-xl hover:bg-[#82bd41] shadow-[0_4px_12px_rgba(145,209,72,0.3)] transition-all">확 인</button>
+              <button 
+                onClick={() => setIsCarryOverModalOpen(false)} 
+                className="w-full py-3.5 bg-[#91D148] text-white font-bold rounded-xl hover:bg-[#82bd41] shadow-[0_4px_12px_rgba(145,209,72,0.3)] transition-all"
+              >
+                확 인
+              </button>
             </div>
           </div>
         </div>
