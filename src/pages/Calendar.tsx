@@ -242,7 +242,7 @@ const MeetingDetailContent: React.FC<{
 
 // === 3. 메인 캘린더 컴포넌트 ===
 const Calendar: React.FC = () => {
-  const navigate = useNavigate(); // 💡 네비게이션 훅 사용
+  const navigate = useNavigate(); // 💡 페이지 이동을 위한 useNavigate 추가
   const calendarRef = useRef<FullCalendar>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -388,7 +388,7 @@ const Calendar: React.FC = () => {
           </div>
 
           <div className="flex-1 bg-white border border-gray-100 rounded-[40px] shadow-sm overflow-hidden flex flex-col relative">
-            <div ref={scrollContainerRef} className={`flex-1 px-8 py-6 ${currentView === 'dayGridMonth' ? 'custom-month-grid' : 'custom-time-grid'}`}>
+            <div ref={scrollContainerRef} className={`flex-1 px-8 ${currentView === 'dayGridMonth' ? 'custom-month-grid pt-6 pb-0' : 'custom-time-grid py-6'}`}>
               <FullCalendar
                 key={currentView + selectedDate}
                 ref={calendarRef}
@@ -414,6 +414,7 @@ const Calendar: React.FC = () => {
                 }}
                 eventContent={(arg) => currentView === "dayGridMonth" ? renderMonthEvent(arg) : renderWeekEvent(arg, hexColors)}
                 height={currentView === 'dayGridMonth' ? 'auto' : '100%'}
+                expandRows={currentView === 'dayGridMonth' ? false : true}
                 stickyHeaderDates={false}
                 dayCellContent={(args) => args.dayNumberText.replace("일", "")}
                 dayCellClassNames={(arg) => formatDate(arg.date) === selectedDate ? 'is-selected' : ''}
@@ -500,8 +501,23 @@ const Calendar: React.FC = () => {
       <style>{`
         .fc { font-family: inherit !important; border: none !important; }
         .fc-theme-standard td, .fc-theme-standard th { border: 1px solid #f8f8f8 !important; }
-        .custom-month-grid { overflow-y: auto !important; height: 100%; }
+        
+        /* 💡 [수정] 월별 보기: 직접적인 그리드 컨테이너들을 제어하여 불필요한 공백 제거 */
+        .custom-month-grid { height: 100%; overflow-y: auto !important; scroll-behavior: smooth; }
         .custom-month-grid .fc-scroller { height: auto !important; overflow-y: visible !important; }
+        
+        /* 💡 분석하신 fc-view-harness 영역의 최소 높이와 실제 높이를 콘텐츠에 딱 맞게 강제합니다. */
+        .custom-month-grid .fc-view-harness { 
+          height: auto !important; 
+          min-height: 0 !important; 
+          flex: none !important;
+        } 
+        
+        .custom-month-grid .fc-daygrid-body { 
+          margin-bottom: 0 !important; 
+          width: 100% !important;
+        }
+        .fc.fc-media-screen { min-height: 50vh !important }
         .custom-time-grid { height: 100%; overflow: hidden; display: flex; flex-direction: column; }
         .custom-time-grid .fc-view-harness { flex-grow: 1; }
         .custom-time-grid .fc-scroller { overflow-y: auto !important; height: 100% !important; }
