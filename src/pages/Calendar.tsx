@@ -234,11 +234,7 @@ const MeetingDetailContent: React.FC<{
           </div>
         </div>
 
-        <div className="flex justify-end pt-2 pb-6">
-          <button className="px-8 py-4 bg-[#91D148] text-white font-black rounded-xl shadow-lg shadow-[#91D148]/20 hover:brightness-105 transition-all active:scale-95 text-[15px] flex items-center gap-2">
-            <span>✨</span> 브리핑 카드 보기
-          </button>
-        </div>
+        
       </div>
     </div>
   );
