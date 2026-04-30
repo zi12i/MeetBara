@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router";
+import { AuthProvider } from "./context/AuthContext";
 import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
@@ -23,17 +24,17 @@ import Home from "./pages/Dashboard/Home";
 import MeetingStart from "./pages/Meetings/MeetingStart";
 import MeetingRegister from "./pages/Meetings/MeetingRegister";
 import LiveMeeting from "./pages/Meetings/LiveMeeting";
-import QuickMeeting from "./pages/Meetings/QuickMeeting"; 
+import QuickMeeting from "./pages/Meetings/QuickMeeting";
 import MeetingResult from "./pages/Meetings/MeetingResult";
 import Status from "./pages/Manage/Status";
 import ProjectManement from "./pages/Manage/ProjectManagement";
 import MeetingHistory from "./pages/Meetings/history";
-import MyWorkspace from "./pages/Workspace/MyWorkSpace";
+import MyWorkspace from "./pages/Workspace/MyWorkspace";
 import GeneralSettings from "./pages/Settings/GeneralSettings";
 
 export default function App() {
   return (
-    <>
+    <AuthProvider>
       <Router>
         <ScrollToTop />
         <Routes>
@@ -54,11 +55,9 @@ export default function App() {
             <Route path="/workspace" element={<MyWorkspace />} />
 
             {/* Settings */}
-            <Route path="/profile" element={<UserProfiles />} />
             <Route path="/general-settings" element={<GeneralSettings />} />
             <Route path="/template-settings" element={<TemplateSettings />} />
-            <Route path="/workspace" element={<Blank />} />
-            <Route path="/action-plan" element={<Blank />} /> 
+            <Route path="/action-plan" element={<Blank />} />
 
             {/* Forms */}
             <Route path="/form-elements" element={<FormElements />} />
@@ -87,10 +86,11 @@ export default function App() {
             <Route path="/meeting/quick/live" element={<QuickMeeting />} />
             <Route path="/meeting/:id/result" element={<MeetingResult />} />
           </Route>
+
           {/* Fallback Route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
-    </>
+    </AuthProvider>
   );
 }
