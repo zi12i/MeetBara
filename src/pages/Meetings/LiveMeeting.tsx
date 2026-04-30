@@ -57,7 +57,8 @@ const LiveMeeting: React.FC = () => {
   const navigate = useNavigate(); 
   
   const [role, setRole] = useState<'host' | 'participant'>('host');
-  const [isBriefingModalOpen, setIsBriefingModalOpen] = useState(false);
+  // 💡 1. 페이지 진입 시 자동으로 열리도록 초기값을 true로 변경
+  const [isBriefingModalOpen, setIsBriefingModalOpen] = useState(true);
   const [isHeaderDropdownOpen, setIsHeaderDropdownOpen] = useState(false);
   
   const [chatTab, setChatTab] = useState<'general' | 'ai'>('general');
@@ -115,7 +116,6 @@ const LiveMeeting: React.FC = () => {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const scriptEndRef = useRef<HTMLDivElement>(null); 
   
-  // 💡 STT 클로저 문제 해결용 Ref (항상 최신 recordingTime 유지)
   const recordingTimeRef = useRef(0);
 
   const currentAgenda = agendas.find(a => a.id === activeAgendaId) || agendas[0];
@@ -136,9 +136,6 @@ const LiveMeeting: React.FC = () => {
     }
   };
 
-  // -----------------------------------------------------
-  // 💡 1. 실시간 STT 기능 (원본 코드 복원 및 안정성 강화)
-  // -----------------------------------------------------
   useEffect(() => {
     recordingTimeRef.current = recordingTime;
   }, [recordingTime]);
@@ -170,7 +167,7 @@ const LiveMeeting: React.FC = () => {
             ...prev,
             {
               id: Date.now(),
-              time: recordingTimeRef.current, // 최신 녹음 시간 반영
+              time: recordingTimeRef.current, 
               user: "현장 음성", 
               text: final.trim()
             }
@@ -360,7 +357,6 @@ const LiveMeeting: React.FC = () => {
         document.body
       )}
 
-      {/* 💡 2. 상단바 z-index 강화 (z-20 -> z-[100]) */}
       <header className="bg-[#CAE7A7] border-b border-black/5 flex items-center px-6 py-3 shrink-0 shadow-md justify-between h-[64px] relative z-[100]">
         <div className="flex flex-wrap items-center gap-3 relative">
           <div className="relative">
@@ -433,8 +429,8 @@ const LiveMeeting: React.FC = () => {
               <>
                 <div className="p-8 border-b border-gray-100 bg-white rounded-t-[24px] sticky top-0 z-10 flex flex-col gap-2">
                   <div className="flex justify-between items-end">
-                    <span className="text-[13px] font-black text-gray-500 uppercase tracking-wider">Conference Progress</span>
-                    <span className="text-[14px] font-black text-[#91D148]">{progressPercent}%</span>
+                    <span className="text-[17px] font-black text-gray-500 uppercase tracking-wider">안건 진행률</span>
+                    <span className="text-[15px] font-black text-[#91D148]">{progressPercent}%</span>
                   </div>
                   
                   <div className="relative mt-8 mb-1 w-full -mt-[1px]">
@@ -494,7 +490,7 @@ const LiveMeeting: React.FC = () => {
                       onClick={() => setIsStopModalOpen(true)} 
                       className="bg-white text-gray-400 border border-gray-200 px-3 py-1.5 rounded-lg font-black text-[12px] hover:bg-gray-50 hover:text-red-500 transition-all flex items-center gap-1"
                     >
-                      <div className="w-1.5 h-1.5 bg-[#FF6B6B] rounded-sm"></div> 녹음 종료
+                      <div className="w-2 h-2 bg-[#FF6B6B] square-sm"></div>
                     </button>
                   </div>
                 </div>
@@ -564,14 +560,13 @@ const LiveMeeting: React.FC = () => {
           {/* ========================================== */}
           <div className="flex-1 bg-white rounded-[24px] shadow-sm border border-gray-200 flex flex-col overflow-hidden">
             <div className="px-8 min-h-[64px] py-4 border-b border-[#91D148]/10 bg-[#F4F9ED]/50 flex justify-between items-center shrink-0">
-              <span className="text-[16px] font-black text-gray-900">AI 실시간 요약</span>
+              <span className="text-[16px] font-black text-gray-900">바라의 실시간 요약</span>
               <button 
                 onClick={generateLiveSummary}
                 disabled={isSummarizing || liveScript.length === 0}
-                className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-[#91D148]/20 cursor-pointer hover:bg-[#CAE7A7] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 bg-white px-7 py-1.5 rounded-full shadow-sm border border-[#91D148]/20 cursor-pointer hover:bg-[#CAE7A7] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span className="text-sm">💫</span>
-                <span className="text-[11px] font-black text-[#8A38F5]">{isSummarizing ? "분석 중..." : "AI 최신화 🔄"}</span>
+                <span className="text-[11px] font-black text-[#8A38F5]">{isSummarizing ? "분석 중..." : "동기화하기"}</span>
               </button>
             </div>
             
@@ -612,12 +607,13 @@ const LiveMeeting: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex border-b border-gray-100 p-2 gap-1 bg-gray-50/50">
-                <button onClick={() => setChatTab('general')} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[12px] font-black rounded-lg transition-all ${chatTab === 'general' ? 'bg-white shadow-md text-gray-900 border border-gray-100' : 'text-gray-400 hover:bg-gray-100'}`}>
+              {/* 💡 2. 눌린 상태(활성화) 뷰 반전 처리 (주최자/참여자 토글과 일치) */}
+              <div className="flex border-b border-gray-100 p-2 gap-2 bg-white shrink-0">
+                <button onClick={() => setChatTab('general')} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[12px] font-black rounded-xl transition-all border ${chatTab === 'general' ? 'bg-gray-100 shadow-inner border-gray-200 text-gray-800' : 'bg-white shadow-sm border-gray-100 text-gray-500 hover:text-gray-700'}`}>
                   💬 팀원 코멘트
                 </button>
-                <button onClick={() => setChatTab('ai')} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[12px] font-black rounded-lg transition-all ${chatTab === 'ai' ? 'bg-white shadow-md text-gray-900 border border-gray-100' : 'text-gray-400 hover:bg-gray-100'}`}>
-                  <img src="/images/favicon.ico" alt="Bara" className="w-3.5 h-3.5 object-contain" /> 바라에게 질문
+                <button onClick={() => setChatTab('ai')} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[12px] font-black rounded-xl transition-all border ${chatTab === 'ai' ? 'bg-gray-100 shadow-inner border-gray-200 text-[#7cb93b]' : 'bg-white shadow-sm border-gray-100 text-gray-500 hover:text-gray-700'}`}>
+                  <img src="/images/favicon.ico" alt="Bara" className={`w-3.5 h-3.5 object-contain transition-all ${chatTab !== 'ai' ? 'opacity-40 grayscale' : ''}`} /> 바라에게 질문
                 </button>
               </div>
 
