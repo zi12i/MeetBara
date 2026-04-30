@@ -76,7 +76,7 @@ const navItems: NavItem[] = [
     name: "관리자 설정 메뉴",
     icon: <HardHatIcon />,
     subItems: [
-      { name: "조직 관리", path: "/basic-tables", pro: false },
+      { name: "조직 관리", path: "/org-management", pro: false },
       { name: "유저 관리", path: "/data-tables", pro: false },
       { name: "리포트 관리", path: "/editable-tables", pro: false },
     ],
