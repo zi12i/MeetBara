@@ -30,6 +30,10 @@ import Status from "./pages/Manage/Status";
 import ProjectManement from "./pages/Manage/ProjectManagement";
 import MeetingHistory from "./pages/Meetings/history";
 import MyWorkspace from "./pages/Workspace/MyWorkspace";
+<<<<<<< HEAD
+=======
+import AdminOrgManagement from "./pages/Admin/AdminOrgManagement";
+>>>>>>> 581118e0240f9fd6e761e467681a692ee4a8ffc0
 import GeneralSettings from "./pages/Settings/GeneralSettings";
 
 export default function App() {
@@ -47,9 +51,9 @@ export default function App() {
             <Route path="/status" element={<Status />} />
             <Route path="/project-management" element={<ProjectManement />} />
             <Route path="/history" element={<MeetingHistory />} />
-
+            {/* Admin */}
+            <Route path="/org-management" element={<AdminOrgManagement />} />
             {/* Others Page */}
-            <Route path="/profile" element={<UserProfiles />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/blank" element={<Blank />} />
             <Route path="/workspace" element={<MyWorkspace />} />
