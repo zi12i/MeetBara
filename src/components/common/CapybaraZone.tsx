@@ -4,7 +4,7 @@ import Draggable from "react-draggable";
 import { createPortal } from "react-dom";
 import Roulette from "../decisions/Roulette"; 
 import Ladder from "../decisions/Ladder"; 
-import ProsCons from "../decisions/ProsCons"; // 💡 추가된 컴포넌트 Import
+import ProsCons from "../decisions/ProsCons";
 
 // 💡 커스텀 SVG 아이콘 정의 (주사위 & 말풍선)
 const DiceIcon = () => (
@@ -37,21 +37,22 @@ interface Scenario {
 }
 
 const BARA_SCENARIOS: Scenario[] = [
-  { id: "welcome", img: "C_2.png", msg: "어서오심시오 환영합니다", color: "bg-[#FF87B4]", footerType: "text", footerValue: "반가워요!" },
-  { id: "meeting_normal", img: "C_3.png", msg: "그대로 계속 진행하심시오", color: "bg-[#91D148]", footerType: "status", footerValue: "정상 진행 중" },
-  { id: "meeting_caution", img: "C_8.png", msg: "조금 우려가 됨니다", color: "bg-[#FFD154]", footerType: "status", footerValue: "안건 이탈 주의" },
-  { id: "meeting_warning", img: "C_1.png", msg: "안건을 벗어났음니다", color: "bg-[#FF6B6B]", footerType: "status", footerValue: "복귀 필요!" },
-  { id: "generating", img: "C_5.png", msg: "회의록을 작성 중 입니다", color: "bg-[#7000FF]", footerType: "status", footerValue: "AI 요약 중" },
-  { id: "idle", img: "C_7.png", msg: "지금 한가하심니까?", color: "bg-gray-400", footerType: "schedule", footerValue: "26. 5. 13 / 14:00" },
-  { id: "dancing", img: "Bara_Dancing.gif", msg: "후후 이대로하십쇼", color: "bg-gray-400", footerType: "schedule", footerValue: "26. 5. 13 / 14:00" },
+  { id: "welcome", img: "C_2.png", msg: "어서오심시오 환영합니다", color: "bg-[#FF87B4]", footerType: "text", footerValue: "반가워요!" }, //1
+  { id: "meeting_normal", img: "C_3.png", msg: "그대로 계속 진행하심시오", color: "bg-[#91D148]", footerType: "status", footerValue: "정상 진행 중" }, //2
+  { id: "meeting_caution", img: "C_8.png", msg: "조금 우려가 됨니다", color: "bg-[#FFD154]", footerType: "status", footerValue: "안건 이탈 주의" }, //3
+  { id: "meeting_warning", img: "C_1.png", msg: "안건을 벗어났음니다", color: "bg-[#FF6B6B]", footerType: "status", footerValue: "복귀 필요!" }, //4
+  { id: "generating", img: "C_5.png", msg: "회의록을 작성 중 입니다", color: "bg-[#7000FF]", footerType: "status", footerValue: "AI 요약 중" }, //5
+  { id: "idle", img: "C_7.png", msg: "지금 한가하심니까?", color: "bg-gray-400", footerType: "schedule", footerValue: "26. 5. 13 / 14:00" }, //6
+  { id: "dancing", img: "Bara_Dancing.gif", msg: "후후 이대로하십쇼", color: "bg-gray-400", footerType: "schedule", footerValue: "26. 5. 13 / 14:00" }, //7
   { 
-    id: "profile_setting", 
+    id: "profile_setting", //8
     img: "C_3.png", 
     msg: "주기적인 비밀번호 변경은 중요한 데이터를 지키는 첫걸음입니다! 🐹🛡️", 
     color: "bg-[#91D148]", 
     footerType: "text", 
     footerValue: "보안 점검 중" 
-  }
+  },
+  { id: "meeting_quick", img: "C_4.png", msg: "", color: "bg-gray-400", footerType: "text", footerValue: "빠른 회의 중" } //9
 ];
 
 interface ChatMessage {
@@ -271,7 +272,11 @@ const CapybaraZone: React.FC<CapybaraZoneProps> = ({
                     type="text" 
                     value={inputValue}
                     onChange={(e) => onInputChange?.(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter" && onSendMessage) onSendMessage(); }}
+                    // 💡 아래 부분이 수정되었습니다: IME 한글 입력 중 중복 전송 방지
+                    onKeyDown={(e) => { 
+                      if (e.nativeEvent.isComposing) return; // 조합 중일 때는 무시
+                      if (e.key === "Enter" && onSendMessage) onSendMessage(); 
+                    }}
                     placeholder="코멘트 입력"
                     className="w-full border-2 border-gray-100 rounded-xl py-2.5 pl-3 pr-10 text-[13px] font-black focus:border-[#CAE7A7] outline-none transition-all bg-gray-50" 
                   />
