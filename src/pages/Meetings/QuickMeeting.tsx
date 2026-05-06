@@ -64,7 +64,7 @@ const QuickMeeting: React.FC = () => {
 
   const [meetingTitle, setMeetingTitle] = useState("빠른 회의 진행 중");
   const [meetingDate, setMeetingDate] = useState(new Date().toLocaleString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }));
-  const [meetingMembers, setMeetingMembers] = useState<string[]>(["김철수", "이영희", "박지민"]);
+  const [meetingMembers, setMeetingMembers] = useState<string[]>([""]);
   
   const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false); 
