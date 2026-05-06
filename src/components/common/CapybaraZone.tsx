@@ -4,6 +4,7 @@ import Draggable from "react-draggable";
 import { createPortal } from "react-dom";
 import Roulette from "../decisions/Roulette"; 
 import Ladder from "../decisions/Ladder"; 
+import ProsCons from "../decisions/ProsCons"; // 💡 추가된 컴포넌트 Import
 
 // 💡 커스텀 SVG 아이콘 정의 (주사위 & 말풍선)
 const DiceIcon = () => (
@@ -337,6 +338,12 @@ const CapybaraZone: React.FC<CapybaraZoneProps> = ({
                 <div className="font-black text-gray-800 text-[16px] group-hover:text-[#6B8E23]">🪜 사다리 타기</div>
                 <div className="text-[13px] text-gray-500 font-bold mt-1 group-hover:text-[#91D148]">참여자들과 함께 사다리 게임을 진행합니다.</div>
               </button>
+
+              {/* 💡 투표 하기 버튼 추가됨 */}
+              <button onClick={() => { setIsFeatureModalOpen(false); setActiveFeature('proscons'); }} className="p-4 border-2 border-gray-100 rounded-2xl hover:border-[#91D148] hover:bg-[#F4F9ED] text-left transition-all group">
+                <div className="font-black text-gray-800 text-[16px] group-hover:text-[#6B8E23]">🗳️ 투표 하기</div>
+                <div className="text-[13px] text-gray-500 font-bold mt-1 group-hover:text-[#91D148]">참여자들과 함께 찬반 투표를 진행합니다.</div>
+              </button>
             </div>
 
             <button onClick={() => setIsFeatureModalOpen(false)} className="mt-6 w-full py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-black rounded-xl transition-colors">닫기</button>
@@ -356,7 +363,7 @@ const CapybaraZone: React.FC<CapybaraZoneProps> = ({
         </div>,
         document.body
       )}
-
+      
       {/* 사다리 타기 모달 */}
       {activeFeature === 'ladder' && createPortal(
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setActiveFeature(null)}>
@@ -364,6 +371,18 @@ const CapybaraZone: React.FC<CapybaraZoneProps> = ({
             <button onClick={() => setActiveFeature(null)} className="absolute top-6 right-6 text-2xl font-black text-gray-400 hover:text-gray-800 transition-colors">✕</button>
             <h3 className="text-2xl font-black text-gray-900 mb-6 text-center">🪜 바라 사다리</h3>
             <div className="flex justify-center"><Ladder /></div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* 💡 투표 하기 모달 추가됨 */}
+      {activeFeature === 'proscons' && createPortal(
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setActiveFeature(null)}>
+          <div className="bg-white rounded-[32px] p-8 w-auto min-w-[500px] shadow-2xl relative animate-zoom-in" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setActiveFeature(null)} className="absolute top-6 right-6 text-2xl font-black text-gray-400 hover:text-gray-800 transition-colors">✕</button>
+            <h3 className="text-2xl font-black text-gray-900 mb-6 text-center">🗳️ 바라 투표</h3>
+            <div className="flex justify-center"><ProsCons /></div>
           </div>
         </div>,
         document.body

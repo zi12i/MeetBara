@@ -84,7 +84,7 @@ const LiveMeeting: React.FC = () => {
 
   const [agendas, setAgendas] = useState<Agenda[]>([
     { id: 1, text: "[미결정] 이전 회의록 기반 알림센터 통합안 리뷰", isCompleted: true },
-    { id: 2, text: "[신규] 메인 피드 레이아웃 1차 시안 확정", isCompleted: false },
+    { id: 2, text: "[신규] 메인 피드 레이아웃 B안 확정 여부 논의", isCompleted: false },
     { id: 3, text: "[신규] 옵셔널 설정 유도 팝업 UX 논의", isCompleted: false },
     { id: 4, text: "[신규] 추가 지표 도입 우선순위 결정", isCompleted: false },
   ]);
