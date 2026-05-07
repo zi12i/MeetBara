@@ -234,10 +234,11 @@ const LiveMeeting: React.FC = () => {
 
   useEffect(() => {
     if (isGenerating) {
-      const timer = setTimeout(() => navigate(`/meeting/${id}/result`), 5000); 
+      const timer = setTimeout(() => navigate(`/meeting/${id}/result`), 2000); 
       return () => clearTimeout(timer);
     }
   }, [isGenerating, navigate, id]);
+  
 
   const handleSendMessage = () => {
     if (!inputValue.trim()) return;
@@ -343,6 +344,14 @@ const LiveMeeting: React.FC = () => {
       <PageMeta title={`실시간 회의 - ${id}`} description="실시간 회의 진행 화면" />
       <Toast message={toastMessage} subMessage={toastSubMessage} isVisible={isToastVisible} onClose={() => setIsToastVisible(false)} />
       
+      {/* 💡 애니메이션 스타일 추가 */}
+      <style>{`
+        @keyframes walkBara {
+          0% { left: 0%; transform: translateX(-50%); }
+          100% { left: 100%; transform: translateX(-50%); }
+        }
+      `}</style>
+
       {role === 'host' && createPortal(
         <CapybaraZone 
           mode="floating" 
@@ -392,7 +401,7 @@ const LiveMeeting: React.FC = () => {
 
           <div className="flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg shadow-sm border border-red-100 h-[36px]">
             <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
-            <span className="text-[11px] font-black tracking-tight">회의 참여자들의 음성을 녹음 중입니다.</span>
+            <span className="text-[11px] font-black tracking-tight">녹음 중</span>
           </div>
         </div>
         
@@ -408,12 +417,15 @@ const LiveMeeting: React.FC = () => {
         </div>
       </header>
 
+      {/* 💡 애니메이션이 적용된 로딩 화면으로 업데이트 */}
       {isGenerating ? (
-        <div className="flex flex-col items-center justify-center w-full h-full bg-white z-50">
-          <h2 className="text-[32px] font-black text-gray-800 mb-16 tracking-widest">LOADING...</h2>
-          <div className="relative w-full max-w-[800px] h-2 bg-[#D6E6F5] rounded-full">
-            <div className="absolute bottom-0 pb-2 flex justify-center items-end w-[120px] left-1/2 -translate-x-1/2 animate-pulse">
-              <img src="/images/bara/Bara_Load.gif" alt="요약 중" className="w-full object-contain drop-shadow-sm"/>
+        <div className="flex flex-col items-center justify-center w-full h-full bg-white z-50 animate-fade-in">
+          <h2 className="text-[32px] font-black text-gray-800 mb-4 tracking-widest">LOADING...</h2>
+          <p className="text-gray-500 font-bold mb-16">회의록을 생성하고 있습니다 🐹</p>
+          <div className="relative w-full max-w-[800px] h-2 bg-[#D6E6F5] rounded-full overflow-visible">
+            <div className="absolute bottom-0 pb-2 flex justify-center items-end w-[120px]" style={{ animation: 'walkBara 4s linear infinite' }}>
+              <img src="/images/bara/Bara_Load.gif" alt="요약 중" className="w-full object-contain drop-shadow-sm mix-blend-multiply" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling!.classList.remove('hidden'); }} />
+              <div className="hidden text-6xl">🐹📝</div>
             </div>
           </div>
         </div>
@@ -499,14 +511,14 @@ const LiveMeeting: React.FC = () => {
               <>
                 <div className="bg-[#F4F9ED]/50 border-b border-[#91D148]/10 px-8 min-h-[64px] py-4 rounded-t-[24px] shrink-0 flex items-center justify-between cursor-pointer select-none relative z-30" onClick={() => setIsAgendaDropdownOpen(!isAgendaDropdownOpen)}>
                   <div className="flex items-center gap-4 flex-1 pr-4">
-                    <span className="text-[16px] font-black text-gray-900 whitespace-nowrap">현재 논의 안건</span>
+                    <span className="text-[16px] font-black text-gray-900 whitespace-nowrap">현재 안건</span>
                     <h2 className="text-[16px] font-black text-[#4a6316] leading-snug break-keep">{currentAgenda.text}</h2>
                   </div>
                   <span className={`text-[#4a6316] font-bold text-[12px] transform transition-transform shrink-0 ${isAgendaDropdownOpen ? 'rotate-180' : ''}`}>▼</span>
                   
                   {isAgendaDropdownOpen && (
                     <div className="absolute top-full left-0 w-full bg-white border border-gray-200 shadow-xl p-6 flex flex-col gap-3 animate-fade-in z-50 rounded-b-[24px]">
-                      <div className="text-[12px] font-black text-gray-400 mb-1">전체 회의 안건 리스트</div>
+                      <div className="text-[12px] font-black text-gray-400 mb-1">전체 안건 리스트</div>
                       {agendas.map(a => (
                         <div key={a.id} className={`flex items-start gap-3 p-3 rounded-xl border ${a.isCompleted ? 'bg-gray-50 border-gray-100 opacity-60' : 'bg-white border-gray-200 shadow-sm'}`}>
                           <span className="text-lg mt-0.5">{a.isCompleted ? '✅' : '⏳'}</span>
@@ -560,13 +572,13 @@ const LiveMeeting: React.FC = () => {
           {/* ========================================== */}
           <div className="flex-1 bg-white rounded-[24px] shadow-sm border border-gray-200 flex flex-col overflow-hidden">
             <div className="px-8 min-h-[64px] py-4 border-b border-[#91D148]/10 bg-[#F4F9ED]/50 flex justify-between items-center shrink-0">
-              <span className="text-[16px] font-black text-gray-900">바라의 실시간 요약</span>
+              <span className="text-[16px] font-black text-gray-900">실시간 요약</span>
               <button 
                 onClick={generateLiveSummary}
                 disabled={isSummarizing || liveScript.length === 0}
                 className="flex items-center gap-2 bg-white px-7 py-1.5 rounded-full shadow-sm border border-[#91D148]/20 cursor-pointer hover:bg-[#CAE7A7] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span className="text-[11px] font-black text-[#8A38F5]">{isSummarizing ? "분석 중..." : "동기화하기"}</span>
+                <span className="text-[11px] font-black text-[#8A38F5]">{isSummarizing ? "분석 중..." : "동기화"}</span>
               </button>
             </div>
             
