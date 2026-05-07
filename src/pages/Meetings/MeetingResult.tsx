@@ -66,7 +66,7 @@ const MeetingResult: React.FC = () => {
       window.dispatchEvent(event);
       const timer = setTimeout(() => {
         navigate("/"); 
-      }, 4000);
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [isSaving, navigate]);

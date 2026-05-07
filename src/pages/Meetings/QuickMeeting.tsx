@@ -382,7 +382,7 @@ const QuickMeeting: React.FC = () => {
 
           <div className="flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg shadow-sm border border-red-100 h-[36px]">
             <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
-            <span className="text-[11px] font-black tracking-tight">음성 녹음 진행 중</span>
+            <span className="text-[11px] font-black tracking-tight">녹음 중</span>
           </div>
         </div>
         
@@ -485,14 +485,14 @@ const QuickMeeting: React.FC = () => {
               <>
                 <div className="bg-[#F4F9ED]/50 border-b border-[#91D148]/10 px-8 min-h-[64px] py-4 rounded-t-[24px] shrink-0 flex items-center justify-between cursor-pointer select-none relative z-30" onClick={() => setIsAgendaDropdownOpen(!isAgendaDropdownOpen)}>
                   <div className="flex items-center gap-4 flex-1 pr-4">
-                    <span className="text-[16px] font-black text-gray-900 whitespace-nowrap">현재 논의 안건</span>
+                    <span className="text-[16px] font-black text-gray-900 whitespace-nowrap">현재 안건</span>
                     <h2 className="text-[16px] font-black text-[#4a6316] leading-snug break-keep">{currentAgenda.text}</h2>
                   </div>
                   <span className={`text-[#4a6316] font-bold text-[12px] transform transition-transform shrink-0 ${isAgendaDropdownOpen ? 'rotate-180' : ''}`}>▼</span>
                   
                   {isAgendaDropdownOpen && (
                     <div className="absolute top-full left-0 w-full bg-white border border-gray-200 shadow-xl p-6 flex flex-col gap-3 animate-fade-in z-50 rounded-b-[24px]">
-                      <div className="text-[12px] font-black text-gray-400 mb-1">전체 회의 안건 리스트</div>
+                      <div className="text-[12px] font-black text-gray-400 mb-1">전체 안건 리스트</div>
                       {agendas.map(a => (
                         <div key={a.id} className={`flex items-start gap-3 p-3 rounded-xl border ${a.isCompleted ? 'bg-gray-50 border-gray-100 opacity-60' : 'bg-white border-gray-200 shadow-sm'}`}>
                           <span className="text-lg mt-0.5">{a.isCompleted ? '✅' : '⏳'}</span>
@@ -543,13 +543,13 @@ const QuickMeeting: React.FC = () => {
 
           <div className="flex-1 bg-white rounded-[24px] shadow-sm border border-gray-200 flex flex-col overflow-hidden">
             <div className="px-8 min-h-[64px] py-4 border-b border-[#91D148]/10 bg-[#F4F9ED]/50 flex justify-between items-center shrink-0">
-              <span className="text-[16px] font-black text-gray-900">바라의 실시간 요약</span>
+              <span className="text-[16px] font-black text-gray-900">실시간 요약</span>
               <button 
                 onClick={generateLiveSummary}
                 disabled={isSummarizing || liveScript.length === 0}
                 className="flex items-center gap-2 bg-white px-7 py-1.5 rounded-full shadow-sm border border-[#91D148]/20 cursor-pointer hover:bg-[#CAE7A7] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span className="text-[11px] font-black text-[#8A38F5]">{isSummarizing ? "분석 중..." : "동기화하기"}</span>
+                <span className="text-[11px] font-black text-[#8A38F5]">{isSummarizing ? "분석 중..." : "동기화"}</span>
               </button>
             </div>
             
