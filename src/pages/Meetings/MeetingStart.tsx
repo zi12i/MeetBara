@@ -102,8 +102,15 @@ export default function MeetingStart() {
     window.dispatchEvent(event);
   }, []);
 
+  // 💡 선택된 회의의 ID에 따라 라우팅 경로를 분기합니다.
   const handleStartMeeting = (id: string) => {
-    window.open(`/meeting/${id}/live`, "_blank", "noopener,noreferrer");
+    if (id === "2") {
+      // 2번 회의(하반기 채용 기획 회의)일 경우 LiveMeeting_2로 매핑된 라우트로 이동
+      window.open(`/meeting/${id}/live2`, "_blank", "noopener,noreferrer");
+    } else {
+      // 그 외 기존 회의일 경우 기존 LiveMeeting 라우트로 이동
+      window.open(`/meeting/${id}/live`, "_blank", "noopener,noreferrer");
+    }
   };
 
   return (

@@ -23,6 +23,7 @@ import Home from "./pages/Dashboard/Home";
 import MeetingStart from "./pages/Meetings/MeetingStart";
 import MeetingRegister from "./pages/Meetings/MeetingRegister";
 import LiveMeeting from "./pages/Meetings/LiveMeeting";
+import LiveMeeting_2 from "./pages/Meetings/LiveMeeting_2";
 import QuickMeeting from "./pages/Meetings/QuickMeeting"; 
 import MeetingResult from "./pages/Meetings/MeetingResult";
 import Status from "./pages/Manage/Status";
@@ -85,6 +86,7 @@ export default function App() {
           <Route path="/signup" element={<SignUp />} />
           <Route element={<MeetingLayout />}>
             <Route path="/meeting/:id/live" element={<LiveMeeting />} />
+            <Route path="/meeting/:id/live2" element={<LiveMeeting_2 />} />
             <Route path="/meeting/quick/live" element={<QuickMeeting />} />
             <Route path="/meeting/:id/result" element={<MeetingResult />} />
           </Route>
