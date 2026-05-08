@@ -4,7 +4,7 @@ type GameMode = "setup" | "voting" | "result";
 
 export default function ProsConsVote() {
   const [mode, setMode] = useState<GameMode>("setup");
-  const [timerSetting, setTimerSetting] = useState(15); // 시연을 위해 기본 15초 세팅
+  const [timerSetting, setTimerSetting] = useState(10); // 시연을 위해 기본 15초 세팅
   const [timeLeft, setTimeLeft] = useState(0);
   const [votes, setVotes] = useState({ agree: 0, disagree: 0 });
   
