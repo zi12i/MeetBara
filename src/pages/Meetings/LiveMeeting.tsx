@@ -110,7 +110,7 @@ const LiveMeeting: React.FC = () => {
   const recordingTimeRef = useRef(0);
 
   // ---------------------------------------------------------
-  // 🎥 [데모 전용] 가상 커서 및 자동 조작 로직 (async/await 버전으로 개선 완료!)
+  // 🎥 [데모 전용] 가상 커서 및 자동 조작 로직
   // ---------------------------------------------------------
   const [cursor, setCursor] = useState({ x: -100, y: -100, visible: false, clicking: false });
 
@@ -130,56 +130,56 @@ const LiveMeeting: React.FC = () => {
         const rect = el.getBoundingClientRect();
         setCursor(prev => ({ ...prev, visible: true, x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }));
       }
-      await wait(400); 
+      await wait(500); 
     };
 
     // 마우스를 임의의 좌표(x, y)로 이동
     const moveCursorCoords = async (x: number, y: number) => {
       setCursor(prev => ({ ...prev, visible: true, x, y }));
-      await wait(400);
+      await wait(500);
     };
 
     // 마우스 클릭 모션 (크기 축소 및 파동)
     const clickCursor = async () => {
       setCursor(prev => ({ ...prev, clicking: true }));
-      await wait(150);
+      await wait(200);
       setCursor(prev => ({ ...prev, clicking: false }));
-      await wait(150); // 클릭 완료 후 약간의 텀
+      await wait(200); // 클릭 완료 후 약간의 텀
     };
 
     const runDemo = async () => {
       try {
         // ==========================================
-        // 👑 [주최자 뷰 시나리오]
+        // 👑 [주최자 뷰 시나리오] - (채팅 시연 없음)
         // ==========================================
-        await wait(3000); // 2초 대기 후 시작
+        await wait(4500); // 2초 대기 후 시작
         
         await moveCursor("demo-briefing-btn");
         await clickCursor();
         setIsBriefingModalOpen(false);
 
-        await wait(1500); // 다음 액션까지 1.5초 대기
+        await wait(1800); // 다음 액션까지 1.5초 대기
         await moveCursor("demo-header-dropdown");
         await clickCursor();
         setIsHeaderDropdownOpen(true);
 
-        await wait(1500);
+        await wait(1800);
         await moveCursor("demo-add-member");
         await clickCursor();
         setIsMemberModalOpen(true);
 
-        await wait(1500);
+        await wait(1800);
         await moveCursorCoords(window.innerWidth / 2, window.innerHeight / 2 + 50);
         await clickCursor();
         handleAddMembers([{ name: "최유진" }, { name: "강동원" }]);
         setIsMemberModalOpen(false);
 
-        await wait(1500);
+        await wait(1800);
         await moveCursor("demo-header-dropdown");
         await clickCursor();
         setIsHeaderDropdownOpen(false);
 
-        await wait(1500);
+        await wait(1800);
         await moveCursor("demo-agenda-input-2");
         await clickCursor();
         
@@ -193,12 +193,12 @@ const LiveMeeting: React.FC = () => {
           await wait(50); // 💡 글자 타이핑 속도 조절
         }
 
-        await wait(1500);
+        await wait(2000);
         await moveCursor("demo-agenda-btn-2");
         await clickCursor();
         setAgendas(prev => prev.map(a => a.id === 2 ? { ...a, isCompleted: true } : a));
 
-        await wait(1500);
+        await wait(2000);
         await clickCursor(); // 제자리 클릭 (토글)
         setAgendas(prev => prev.map(a => a.id === 2 ? { ...a, isCompleted: false } : a));
         setCursor(prev => ({ ...prev, visible: false }));
@@ -206,24 +206,24 @@ const LiveMeeting: React.FC = () => {
         // ==========================================
         // 🙋‍♂️ [참여자 뷰 시나리오]
         // ==========================================
-        await wait(26000);
+        await wait(20000); // 이전 데모 흐름(확장 기능 시연 등) 대기
         setCursor(prev => ({ ...prev, clicking: true }));
         await moveCursor("demo-role-participant-btn");
         await clickCursor();
         setRole('participant');
-        setChatTab('general');
+        setChatTab('general'); // 진입 시 기본적으로 제너럴(팀원 코멘트) 탭
 
-        await wait(1500);
+        await wait(1800);
         await moveCursor("demo-agenda-dropdown-header");
         await clickCursor();
         setIsAgendaDropdownOpen(true);
 
-        await wait(1500);
+        await wait(1800);
         await clickCursor(); // 제자리 클릭
         setIsAgendaDropdownOpen(false);
 
         // 실시간 STT 기록 시뮬레이션
-        await wait(1500);
+        await wait(1800);
         setLiveScript(prev => [
           ...prev,
           { id: Date.now(), time: recordingTimeRef.current, user: "박지민", text: "이번 B안의 피드 레이아웃에서 여백이 너무 좁은 것 같아요." },
@@ -237,17 +237,42 @@ const LiveMeeting: React.FC = () => {
         setToastMessage("AI 실시간 요약이 업데이트되었습니다! ✨");
         setIsToastVisible(true);
 
-        // 바라에게 질문 (팀 위키 탐색 시연)
+        // 💡 [복구완료] 참여자 뷰에서 일반 팀원 코멘트 작성 시연
+        await wait(2000);
+        await moveCursor("demo-chat-input");
+        await clickCursor();
+        
+        const generalChatText = "저도 동의합니다!";
+        const inputElGen = document.getElementById("demo-chat-input") as HTMLInputElement;
+        const nativeInputValueSetterGen = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
+        let genStr = "";
+        
+        for (const char of generalChatText) {
+          genStr += char;
+          setInputValue(genStr);
+          if (inputElGen && nativeInputValueSetterGen) {
+            nativeInputValueSetterGen.call(inputElGen, genStr);
+            inputElGen.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+          await wait(50); 
+        }
+
+        await wait(1500);
+        await moveCursor("demo-chat-send-btn");
+        await clickCursor();
+        document.getElementById("demo-chat-send-btn")?.click(); 
+
+        // 💡 팀원 코멘트 전송 후 '바라에게 질문' 탭으로 이동
         await wait(2000);
         await moveCursor("demo-ai-tab-btn");
         await clickCursor();
         setChatTab('ai');
 
-        await wait(1000);
+        await wait(1500);
         await moveCursor("demo-chat-input");
         await clickCursor();
         
-        // 채팅창 타이핑 시연
+        // 바라 채팅창 타이핑 시연
         const wikiQuery = "팀 위키에서 UI 가이드라인 찾아줘";
         const inputEl = document.getElementById("demo-chat-input") as HTMLInputElement;
         const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
@@ -264,7 +289,7 @@ const LiveMeeting: React.FC = () => {
           await wait(50); // 💡 글자 타이핑 속도 조절
         }
 
-        await wait(1500);
+        await wait(1800);
         await moveCursor("demo-chat-send-btn");
         await clickCursor();
         document.getElementById("demo-chat-send-btn")?.click(); // 실제 전송 트리거
@@ -289,12 +314,14 @@ const LiveMeeting: React.FC = () => {
         setRole('host');
         setChatTab('general');
 
-        await wait(1500);
+        await wait(2500); // 전환 후 자연스럽게 잠시 화면을 보여주며 대기
+
+        // 바로 종료 버튼으로 이동
         await moveCursor("demo-stop-recording-btn");
         await clickCursor();
         setIsStopModalOpen(true);
 
-        await wait(1500);
+        await wait(1800);
         await moveCursor("demo-confirm-stop-btn");
         await clickCursor();
         setIsStopModalOpen(false);

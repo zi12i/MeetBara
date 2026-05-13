@@ -167,7 +167,7 @@ const CapybaraZone: React.FC<CapybaraZoneProps> = ({
     const runDemo = async () => {
       try {
         // 💡 메인 회의 시연(LiveMeeting)과 겹치지 않도록 초기 진입 딜레이 설정
-        await wait(20000); 
+        await wait(27000); 
 
         // 1. 위젯 드래그 시연
         const widgetId = "demo-bara-widget";
@@ -213,54 +213,15 @@ const CapybaraZone: React.FC<CapybaraZoneProps> = ({
         setIsMinimized(false);
         await wait(1200);
 
-        // 4. 채팅창 열기
-        await moveCursor("demo-bara-chat-btn");
-        await clickCursor();
-        setIsChatOpen(true);
-        await wait(1200);
+        // 💡 (요청 반영) 채팅창 입력 시연 과정(기존 4~7단계) 삭제
 
-        // 5. 채팅 입력 (네이티브 DOM 이벤트를 활용한 강제 입력)
-        await moveCursor("demo-bara-chat-input");
-        await clickCursor();
-        const textToType = "안녕하세요!";
-        const inputEl = document.getElementById("demo-bara-chat-input") as HTMLInputElement;
-        
-        if (inputEl) {
-          inputEl.focus();
-          const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
-          let currentString = "";
-          
-          for (const char of textToType) {
-            currentString += char;
-            if (nativeInputValueSetter) {
-              nativeInputValueSetter.call(inputEl, currentString);
-              inputEl.dispatchEvent(new Event("input", { bubbles: true }));
-            }
-            handleInput(currentString);
-            await wait(50); // 💡 채팅 한 글자당 타이핑 속도 (조절 가능)
-          }
-        }
-        await wait(600);
-
-        // 6. 전송 버튼 클릭 (클로저 우회를 위해 DOM click 직접 발생)
-        await moveCursor("demo-bara-send-btn");
-        await clickCursor();
-        document.getElementById("demo-bara-send-btn")?.click(); // 💡 실제 전송 이벤트 트리거
-        await wait(800);
-
-        // 7. 채팅창 닫기
-        await moveCursor("demo-bara-chat-close-btn");
-        await clickCursor();
-        setIsChatOpen(false);
-        await wait(1000);
-
-        // 8. 확장 기능 모달 열기
+        // 4. 확장 기능 모달 열기 (기존 8번)
         await moveCursor("demo-bara-dice-btn");
         await clickCursor();
         setIsFeatureModalOpen(true);
         await wait(2000); // 💡 모달 띄워두고 구경하는 시간 (조절 가능)
 
-        // 9. 확장 기능 모달 닫기
+        // 5. 확장 기능 모달 닫기 (기존 9번)
         await moveCursor("demo-bara-ext-close");
         await clickCursor();
         setIsFeatureModalOpen(false);
@@ -495,6 +456,7 @@ const CapybaraZone: React.FC<CapybaraZoneProps> = ({
                   <DiceIcon />
                 </button>
                 
+                {/* 💡 수정된 부분: 플로팅 모드에서도 남은 시간(timeLeft)이 정상적으로 출력됩니다. */}
                 <span className={`absolute left-1/2 -translate-x-1/2 text-[32px] font-black tracking-tighter tabular-nums ${currentScenario.color.includes("FFD154") ? 'text-gray-900' : 'text-white'}`}>
                   {isLiveMeeting ? (currentScenario.timeLeft || currentTime) : currentTime}
                 </span>
