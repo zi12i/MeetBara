@@ -207,22 +207,25 @@ const LiveMeeting: React.FC = () => {
     return () => { clearInterval(interval); clearInterval(waveformInterval); };
   }, [isRecording]);
 
-  useEffect(() => {
+useEffect(() => {
+    // 💡 1번 코드와 동일하게 전체 회의 시간에서 진행 시간을 빼서 남은 시간을 계산
     const getVirtualTimeLeft = (sec: number) => {
       const remain = Math.max(MEETING_TOTAL_TIME - sec, 0);
       return `${Math.floor(remain / 60).toString().padStart(2, '0')}:${(remain % 60).toString().padStart(2, '0')}`;
     };
+    
     const timeLeftStr = getVirtualTimeLeft(recordingTime);
 
-    // 💡 수정된 부분: 이미 경고창을 띄웠는지 확인
     if (recordingTime >= MEETING_TOTAL_TIME && !hasShownCarryOverWarning) {
       setIsCarryOverModalOpen(true);
-      setHasShownCarryOverWarning(true); // 상태 업데이트로 한 번만 실행
+      setHasShownCarryOverWarning(true);
     }
-
-    if (!isGenerating && !isStopModalOpen) emitBara(currentBaraId, progressPercent, undefined, timeLeftStr);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recordingTime]);
+    
+    if (!isGenerating && !isStopModalOpen) {
+      // 💡 현재 시간(currentTimeStr)을 넘기던 부분을 남은 시간(timeLeftStr)으로 수정
+      emitBara(currentBaraId, undefined, undefined, timeLeftStr);
+    }
+  }, [recordingTime, hasShownCarryOverWarning, isGenerating, isStopModalOpen, currentBaraId]);
 
   useEffect(() => {
     if (isGenerating) { emitBara("generating", progressPercent); return; }
