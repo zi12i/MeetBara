@@ -75,10 +75,7 @@ const LiveMeeting: React.FC = () => {
 
   const [isStopModalOpen, setIsStopModalOpen] = useState(false); 
   const [isCarryOverModalOpen, setIsCarryOverModalOpen] = useState(false);
-  
-  // 💡 1회 팝업 방지를 위한 상태 추가
   const [hasShownCarryOverWarning, setHasShownCarryOverWarning] = useState(false);
-
   const [isGenerating, setIsGenerating] = useState(false); 
   
   const [isToastVisible, setIsToastVisible] = useState(false);
@@ -207,27 +204,24 @@ const LiveMeeting: React.FC = () => {
     return () => { clearInterval(interval); clearInterval(waveformInterval); };
   }, [isRecording]);
 
+  // ✅ [수정된 부분] 타이머가 누락되지 않도록 단일 useEffect로 합침
   useEffect(() => {
-    const getVirtualTimeLeft = (sec: number) => {
-      const remain = Math.max(MEETING_TOTAL_TIME - sec, 0);
-      return `${Math.floor(remain / 60).toString().padStart(2, '0')}:${(remain % 60).toString().padStart(2, '0')}`;
-    };
-    const timeLeftStr = getVirtualTimeLeft(recordingTime);
+    // 남은 시간(타이머) 계산
+    const remain = Math.max(MEETING_TOTAL_TIME - recordingTime, 0);
+    const timeLeftStr = `${Math.floor(remain / 60).toString().padStart(2, '0')}:${(remain % 60).toString().padStart(2, '0')}`;
 
-    // 💡 수정된 부분: 이미 경고창을 띄웠는지 확인
     if (recordingTime >= MEETING_TOTAL_TIME && !hasShownCarryOverWarning) {
       setIsCarryOverModalOpen(true);
-      setHasShownCarryOverWarning(true); // 상태 업데이트로 한 번만 실행
+      setHasShownCarryOverWarning(true); 
     }
 
-    if (!isGenerating && !isStopModalOpen) emitBara(currentBaraId, progressPercent, undefined, timeLeftStr);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recordingTime]);
-
-  useEffect(() => {
-    if (isGenerating) { emitBara("generating", progressPercent); return; }
-    if (!isStopModalOpen && !isCarryOverModalOpen) emitBara(currentBaraId, progressPercent);
-  }, [agendas, currentBaraId, isStopModalOpen, isCarryOverModalOpen, isGenerating, progressPercent]);
+    // 상태(진행률, 카피바라 표정 등)가 변할 때마다 타이머 값(timeLeftStr)을 무조건 함께 전달!
+    if (isGenerating) {
+      emitBara("generating", progressPercent, undefined, timeLeftStr);
+    } else if (!isStopModalOpen && !isCarryOverModalOpen) {
+      emitBara(currentBaraId, progressPercent, undefined, timeLeftStr);
+    }
+  }, [recordingTime, currentBaraId, progressPercent, isGenerating, isStopModalOpen, isCarryOverModalOpen, hasShownCarryOverWarning, MEETING_TOTAL_TIME]);
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [teamChatList, baraChatList, isBaraTyping, chatTab]); 
   useEffect(() => { scriptEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [liveScript, interimTranscript]);
@@ -246,7 +240,6 @@ const LiveMeeting: React.FC = () => {
     }
   }, [isGenerating, navigate, id]);
   
-
   const handleSendMessage = () => {
     if (!inputValue.trim()) return;
     const userMessage = inputValue;
@@ -269,8 +262,12 @@ const LiveMeeting: React.FC = () => {
 
       setTimeout(() => {
         let responseText = "지금 진행 중인 내용에 집중해서 듣고 있어요! 도움이 필요하면 구체적으로 말씀해주세요. 🐹";
-        if (userMessage.includes("요약")) responseText = "지금까지 진행된 내용을 분석하여 요약 중입니다! 📝";
-        else if (userMessage.includes("안건") || userMessage.includes("진행")) {
+        
+        if (userMessage.includes("위키") || userMessage.includes("가이드라인") || userMessage.includes("기준")) {
+          responseText = "팀 위키에서 [2025 상반기 인턴십 운영안] 문서를 찾았습니다. 서류 평가 시 '직무 적합성(포트폴리오 등)' 항목이 40%의 비중을 차지한다고 명시되어 있습니다. 📚";
+        } else if (userMessage.includes("요약")) {
+          responseText = "지금까지 진행된 내용을 분석하여 요약 중입니다! 📝";
+        } else if (userMessage.includes("안건") || userMessage.includes("진행")) {
           const nextAgenda = agendas.find(a => !a.isCompleted)?.text || "없음";
           responseText = `현재 총 ${agendas.length}개의 안건 중 ${completedAgendasCount}개가 완료되었어요. 다음 다룰 안건은 '${nextAgenda}' 입니다. 🎯`;
         } else if (userMessage.includes("시간") || userMessage.includes("얼마나")) {
@@ -279,6 +276,7 @@ const LiveMeeting: React.FC = () => {
           const randomResponses = ["네, 확인했습니다! 이 부분은 나중에 회의록 키워드에 잘 정리해 둘게요. ✨", "음, 그 부분은 발화자 분이 좀 더 명확히 말씀해주시면 기록하기 좋을 것 같아요! 👀", "대화 흐름을 놓치지 않고 꼼꼼히 듣고 있습니다. 🐹"];
           responseText = randomResponses[Math.floor(Math.random() * randomResponses.length)];
         }
+        
         setIsBaraTyping(false);
         setBaraChatList(prev => [...prev, { id: Date.now(), sender: "bara", text: responseText, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
       }, 1500); 
@@ -386,7 +384,10 @@ const LiveMeeting: React.FC = () => {
             {isHeaderDropdownOpen && (
               <div className="absolute top-full left-0 mt-2 w-[320px] bg-white border border-gray-200 shadow-xl rounded-2xl p-5 flex flex-col gap-4 z-50 animate-fade-in-up">
                 <div>
-                  <div className="text-[12px] font-black text-gray-400 mb-3 flex items-center gap-1">👥 참여자 목록 <button onClick={() => setIsMemberModalOpen(true)} className="ml-2 text-[10px] text-[#91D148] hover:underline">+ 추가</button></div>
+                  <div className="text-[12px] font-black text-gray-400 mb-3 flex items-center gap-1">
+                    👥 참여자 목록 
+                    <button onClick={() => setIsMemberModalOpen(true)} className="ml-2 text-[10px] text-[#91D148] hover:underline">+ 추가</button>
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {meetingMembers.map(name => (
                        <span key={name} className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg text-[13px] font-bold border border-gray-200 shadow-sm">{name}</span>
@@ -437,6 +438,9 @@ const LiveMeeting: React.FC = () => {
       ) : (
         <div className="flex-1 flex bg-[#F8F9FA] p-6 gap-6 overflow-hidden relative z-10">
           
+          {/* ========================================== */}
+          {/* ⬅️ 좌측 패널 (주최자: 안건 / 참여자: 스크립트) */}
+          {/* ========================================== */}
           <div className="w-[45%] flex flex-col bg-white rounded-[24px] shadow-sm border border-gray-200 shrink-0 relative">
             
             {role === 'host' ? (
@@ -535,7 +539,7 @@ const LiveMeeting: React.FC = () => {
                   {liveScript.length > 0 ? liveScript.map((item, index) => {
                     const isLatest = index === liveScript.length - 1 && !interimTranscript;
                     return (
-                      <div key={item.id} className={`p-5 rounded-2xl border transition-all relative group ${isLatest ? 'bg-white border-[#91D148]/30 shadow-sm' : 'bg-white border-gray-100 opacity-70'}`}>
+                      <div key={item.id} className={`p-5 rounded-2xl border transition-all relative group animate-fade-in-up ${isLatest ? 'bg-white border-[#91D148]/30 shadow-sm' : 'bg-white border-gray-100 opacity-70'}`}>
                         <div className="font-black text-sm mb-2 flex items-center gap-2">
                           <button 
                             onClick={() => {
@@ -569,6 +573,9 @@ const LiveMeeting: React.FC = () => {
             )}
           </div>
 
+          {/* ========================================== */}
+          {/* ➡️ 중앙 패널: AI 실시간 요약 */}
+          {/* ========================================== */}
           <div className="flex-1 bg-white rounded-[24px] shadow-sm border border-gray-200 flex flex-col overflow-hidden">
             <div className="px-8 min-h-[64px] py-4 border-b border-[#91D148]/10 bg-[#F4F9ED]/50 flex justify-between items-center shrink-0">
               <span className="text-[16px] font-black text-gray-900">실시간 요약</span>
@@ -584,7 +591,7 @@ const LiveMeeting: React.FC = () => {
             <div className="flex-1 overflow-y-auto p-10 flex flex-col bg-white">
               <div className="space-y-10 flex-1">
                 {fullSummary.length > 0 ? fullSummary.map((s, i) => (
-                  <div key={i} className="relative pl-8 border-l-4 border-[#CAE7A7]">
+                  <div key={i} className="relative pl-8 border-l-4 border-[#CAE7A7] animate-fade-in">
                     <div className="absolute -left-[14px] top-0 w-6 h-6 bg-[#91D148] rounded-full border-4 border-white shadow-md"></div>
                     <h4 className="text-[18px] font-black text-gray-900 mb-4">{s.title}</h4>
                     <ul className="space-y-3">{s.content.map((c, j) => <li key={j} className="text-gray-600 font-bold text-[15px]">• {c}</li>)}</ul>
@@ -595,7 +602,7 @@ const LiveMeeting: React.FC = () => {
               </div>
               
               {meetingKeywords.length > 0 && (
-                <div className="mt-8 pt-6 border-t border-gray-100 shrink-0">
+                <div className="mt-8 pt-6 border-t border-gray-100 shrink-0 animate-fade-in">
                   <h5 className="text-[13px] font-black text-gray-400 mb-3 uppercase tracking-wider">주요 도출 키워드</h5>
                   <div className="flex flex-wrap gap-2">
                     {meetingKeywords.map((kw, idx) => (
@@ -607,6 +614,9 @@ const LiveMeeting: React.FC = () => {
             </div>
           </div>
 
+          {/* ========================================== */}
+          {/* 💬 우측 사이드바 (참여자 뷰 전용) */}
+          {/* ========================================== */}
           {role === 'participant' && (
             <aside className="w-[360px] bg-white rounded-[24px] shadow-sm border border-gray-200 flex flex-col overflow-hidden shrink-0">
               <div className="h-[220px] w-full bg-[#F4F9ED] border-b border-[#91D148]/20 relative overflow-hidden shrink-0 flex items-center justify-center">
@@ -627,7 +637,7 @@ const LiveMeeting: React.FC = () => {
               <div className="flex-1 overflow-y-auto p-5 space-y-5 bg-gray-50/30">
                 {chatTab === 'general' ? (
                   teamChatList.map(chat => (
-                    <div key={chat.id} className={`flex flex-col ${chat.sender === "me" ? "items-end" : "items-start"}`}>
+                    <div key={chat.id} className={`flex flex-col ${chat.sender === "me" ? "items-end" : "items-start"} animate-fade-in-up`}>
                       {chat.target && chat.target !== "all" && (
                         <span className="text-[10px] font-black text-[#91D148] mb-1 px-1">🔒 {chat.target}에게만</span>
                       )}
@@ -647,7 +657,7 @@ const LiveMeeting: React.FC = () => {
                   ))
                 ) : (
                   baraChatList.map(chat => (
-                    <div key={chat.id} className={`flex flex-col ${chat.sender === "me" ? "items-end" : "items-start"}`}>
+                    <div key={chat.id} className={`flex flex-col ${chat.sender === "me" ? "items-end" : "items-start"} animate-fade-in-up`}>
                       {chat.sender === "bara" && <span className="text-[11px] font-black text-[#91D148] mb-1 ml-1">BARA 🐹</span>}
                       <div className="flex items-end gap-2 max-w-[90%]">
                         {chat.sender === "me" && <span className="text-[10px] text-gray-400 mb-1 shrink-0">{chat.time}</span>}
@@ -757,7 +767,12 @@ const LiveMeeting: React.FC = () => {
             )}
             <div className="flex gap-3">
               <button onClick={() => setIsStopModalOpen(false)} className="flex-1 py-3.5 bg-[#F1F3F5] text-[#495057] font-bold rounded-xl hover:bg-gray-200 transition-all">아니오</button>
-              <button onClick={() => { setIsStopModalOpen(false); setIsGenerating(true); setCurrentBaraId("generating"); }} className="flex-1 py-3.5 bg-[#91D148] text-white font-bold rounded-xl hover:bg-[#82bd41] transition-all shadow-md">네, 종료합니다</button>
+              <button 
+                onClick={() => { setIsStopModalOpen(false); setIsGenerating(true); setCurrentBaraId("generating"); }} 
+                className="flex-1 py-3.5 bg-[#91D148] text-white font-bold rounded-xl hover:bg-[#82bd41] transition-all shadow-md"
+              >
+                네, 종료합니다
+              </button>
             </div>
           </div>
         </div>
